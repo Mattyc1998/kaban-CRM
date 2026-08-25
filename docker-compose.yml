@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: kaban-crm-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kaban
+      POSTGRES_PASSWORD: kaban_dev_password
+      POSTGRES_DB: kaban_crm
+    ports:
+      - "5432:5432"
+    volumes:
+      - kaban_crm_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kaban -d kaban_crm"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  kaban_crm_db_data:

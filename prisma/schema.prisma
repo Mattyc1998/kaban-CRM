@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------- Auth ----------
+
+enum UserRole {
+  ADMIN
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         UserRole @default(ADMIN)
+  createdAt    DateTime @default(now())
+}
+
+// Portal login for customers — built later, schema exists now.
+model Customer {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  company      String?
+  createdAt    DateTime  @default(now())
+  projects     Project[]
+}
+
+// ---------- Lead CRM Kanban ----------
+
+enum LeadStage {
+  COLD_LEAD
+  CONTACTED
+  REPLIED
+  RESEARCH
+  READY_TO_CALL
+  CALL_BOOKED
+  WON
+  LOST
+}
+
+enum LeadSource {
+  MANUAL
+  N8N
+  INSTANTLY
+}
+
+enum AiResearchStatus {
+  NONE
+  PENDING
+  RUNNING
+  DONE
+  FAILED
+}
+
+model Lead {
+  id     String @id @default(cuid())
+  name   String
+  company String?
+  email  String?
+  phone  String?
+
+  stage    LeadStage  @default(COLD_LEAD)
+  source   LeadSource @default(MANUAL)
+  // Fractional index within a column (Trello-style) so reordering never
+  // needs to rewrite sibling rows.
+  position Float      @default(0)
+
+  // dedupe key for webhook-created leads (n8n/Instantly record id)
+  externalId String?
+
+  aiSummary        String?
+  aiPainPoints      String?
+  aiCallAngle       String?
+  aiResearchStatus  AiResearchStatus @default(NONE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  activities LeadActivity[]
+  projects   Project[]
+
+  @@index([stage, position])
+  @@index([source, externalId])
+}
+
+enum LeadActivityType {
+  REPLY
+  NOTE
+  STAGE_CHANGE
+}
+
+model LeadActivity {
+  id        String           @id @default(cuid())
+  leadId    String
+  lead      Lead             @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  type      LeadActivityType
+  content   String
+  createdAt DateTime         @default(now())
+
+  @@index([leadId])
+}
+
+// ---------- Project tracking (schema only, UI built later) ----------
+
+enum ProjectStage {
+  ONBOARDING
+  PLANNING
+  BUILDING
+  REVIEW
+  CHANGES
+  COMPLETED
+}
+
+model Project {
+  id         String       @id @default(cuid())
+  leadId     String?
+  lead       Lead?        @relation(fields: [leadId], references: [id])
+  customerId String?
+  customer   Customer?    @relation(fields: [customerId], references: [id])
+  name       String
+  stage      ProjectStage @default(ONBOARDING)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  tasks    ProjectTask[]
+  files    ProjectFile[]
+  comments ProjectComment[]
+}
+
+model ProjectTask {
+  id        String    @id @default(cuid())
+  projectId String
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title     String
+  done      Boolean   @default(false)
+  dueAt     DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([projectId])
+}
+
+model ProjectFile {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  url       String
+  name      String
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model ProjectComment {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author    String
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+}
