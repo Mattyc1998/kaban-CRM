@@ -1,13 +1,17 @@
+import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { authConfig } from "@/lib/auth.config";
+
+// Edge runtime: use the lightweight authConfig (no Prisma/bcrypt) here,
+// not the full lib/auth.ts config, which pulls in Node-only Credentials logic.
+const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const isLoginPage = req.nextUrl.pathname.startsWith("/login");
 
   if (!isLoggedIn && !isLoginPage) {
-    const loginUrl = new URL("/login", req.nextUrl.origin);
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.redirect(new URL("/login", req.nextUrl.origin));
   }
 
   if (isLoggedIn && isLoginPage) {

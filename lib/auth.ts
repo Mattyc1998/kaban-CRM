@@ -2,12 +2,15 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { authConfig } from "@/lib/auth.config";
 
 // No DB adapter: auth is Credentials-only against our own `User` table,
 // with JWT sessions, so no Account/Session/VerificationToken tables are needed.
+// This full config (Node runtime only — Credentials pulls in bcrypt/Prisma)
+// extends the Edge-safe authConfig used by proxy.ts.
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   session: { strategy: "jwt" },
-  pages: { signIn: "/login" },
   providers: [
     Credentials({
       name: "Credentials",
