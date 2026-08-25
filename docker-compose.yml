@@ -8,7 +8,9 @@ services:
       POSTGRES_PASSWORD: kaban_dev_password
       POSTGRES_DB: kaban_crm
     ports:
-      - "5432:5432"
+      # Host port 5432 is already taken by a native PostgreSQL 17 Windows
+      # service on this machine, so kaban-crm-db is exposed on 5433 instead.
+      - "5433:5432"
     volumes:
       - kaban_crm_db_data:/var/lib/postgresql/data
     healthcheck:

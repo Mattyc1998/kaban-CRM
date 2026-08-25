@@ -50,6 +50,16 @@ export function KanbanBoard({ initialLeads }: { initialLeads: Lead[] }) {
   const [activeLead, setActiveLead] = useState<Lead | null>(null);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
+  // initialLeads is a fresh array on every server refetch (router.refresh()
+  // after create/move/note/research actions). Resync local board state from
+  // it during render (React's recommended pattern) so fields that change
+  // server-side (e.g. AI research status) don't go stale.
+  const [prevInitialLeads, setPrevInitialLeads] = useState(initialLeads);
+  if (initialLeads !== prevInitialLeads) {
+    setPrevInitialLeads(initialLeads);
+    setBoard(groupByStage(initialLeads));
+  }
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
   );
@@ -141,6 +151,7 @@ export function KanbanBoard({ initialLeads }: { initialLeads: Lead[] }) {
       </div>
 
       <DndContext
+        id="kanban-board"
         sensors={sensors}
         collisionDetection={closestCorners}
         onDragStart={handleDragStart}
