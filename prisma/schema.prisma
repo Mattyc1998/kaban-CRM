@@ -72,6 +72,9 @@ model Lead {
   // needs to rewrite sibling rows.
   position Float      @default(0)
 
+  // Estimated deal value in whole dollars, for the pipeline value stat.
+  dealValue Int?
+
   // dedupe key for webhook-created leads (n8n/Instantly record id)
   externalId String?
 

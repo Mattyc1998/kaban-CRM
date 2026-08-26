@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,6 +31,7 @@ export function NewLeadDialog() {
           company: formData.get("company"),
           email: formData.get("email"),
           phone: formData.get("phone"),
+          dealValue: formData.get("dealValue") || undefined,
         });
         toast.success("Lead added");
         setOpen(false);
@@ -42,7 +44,14 @@ export function NewLeadDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button>Add lead</Button>} />
+      <DialogTrigger
+        render={
+          <Button>
+            <Plus className="size-4" />
+            Add Lead
+          </Button>
+        }
+      />
       <DialogContent>
         <form action={handleSubmit}>
           <DialogHeader>
@@ -67,6 +76,10 @@ export function NewLeadDialog() {
             <div className="grid gap-2">
               <Label htmlFor="phone">Phone</Label>
               <Input id="phone" name="phone" />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="dealValue">Estimated deal value ($)</Label>
+              <Input id="dealValue" name="dealValue" type="number" min={0} step={1} />
             </div>
           </div>
           <DialogFooter>

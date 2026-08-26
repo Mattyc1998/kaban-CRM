@@ -16,6 +16,7 @@ export const createLeadSchema = z.object({
   company: z.string().max(200).optional().or(z.literal("")),
   email: z.string().email().optional().or(z.literal("")),
   phone: z.string().max(50).optional().or(z.literal("")),
+  dealValue: z.coerce.number().int().min(0).optional(),
 });
 
 export const updateLeadSchema = z.object({
@@ -46,6 +47,7 @@ export const n8nLeadPayloadSchema = z.object({
   phone: z.string().optional(),
   stage: z.enum(leadStages).optional(),
   note: z.string().optional(),
+  dealValue: z.coerce.number().int().min(0).optional(),
 });
 
 // Payload shape accepted from the Instantly.ai reply webhook.

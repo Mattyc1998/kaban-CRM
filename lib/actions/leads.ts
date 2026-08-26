@@ -32,6 +32,7 @@ export async function createLead(input: unknown) {
       company: data.company || null,
       email: data.email || null,
       phone: data.phone || null,
+      dealValue: data.dealValue,
       stage: "COLD_LEAD",
       source: "MANUAL",
       position: (last?.position ?? -1) + 1,
@@ -39,6 +40,7 @@ export async function createLead(input: unknown) {
   });
 
   revalidatePath("/leads");
+  revalidatePath("/");
 }
 
 export async function updateLead(input: unknown) {
@@ -85,6 +87,7 @@ export async function moveLead(input: unknown) {
   ]);
 
   revalidatePath("/leads");
+  revalidatePath("/");
 }
 
 export async function addNote(input: unknown) {
@@ -116,4 +119,5 @@ export async function deleteLead(leadId: string) {
   await requireSession();
   await prisma.lead.delete({ where: { id: leadId } });
   revalidatePath("/leads");
+  revalidatePath("/");
 }

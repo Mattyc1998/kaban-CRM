@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { Header } from "@/components/layout/header";
+import { AppShell } from "@/components/layout/app-shell";
 import { KanbanBoard } from "@/components/kanban/kanban-board";
 
 export default async function LeadsPage() {
@@ -8,11 +8,8 @@ export default async function LeadsPage() {
   });
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-      <main className="flex-1 overflow-x-auto p-6">
-        <KanbanBoard initialLeads={leads} />
-      </main>
-    </div>
+    <AppShell active="/leads">
+      <KanbanBoard initialLeads={leads} />
+    </AppShell>
   );
 }
