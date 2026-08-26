@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
+import { CopilotLauncher } from "@/components/copilot/copilot-launcher";
 
 export function AppShell({
   active,
@@ -16,6 +17,7 @@ export function AppShell({
         <Topbar />
         <main className="flex-1 overflow-auto p-6">{children}</main>
       </div>
+      <CopilotLauncher />
     </div>
   );
 }

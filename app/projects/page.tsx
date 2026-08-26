@@ -1,15 +1,27 @@
-import { FolderKanban } from "lucide-react";
+import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/layout/app-shell";
-import { ComingSoon } from "@/components/layout/coming-soon";
+import { ProjectsPageClient } from "@/components/projects/projects-page-client";
 
-export default function ProjectsPage() {
+export default async function ProjectsPage() {
+  const projects = await prisma.project.findMany({
+    orderBy: [{ stage: "asc" }, { position: "asc" }],
+    include: {
+      tasks: { select: { id: true, done: true } },
+      files: { select: { id: true } },
+      changeRequests: { where: { status: "PENDING" }, select: { id: true } },
+    },
+  });
+
+  const activeProjects = projects.filter((p) => p.stage !== "COMPLETED");
+  const activeCount = activeProjects.length;
+  const activeBudget = activeProjects.reduce((sum, p) => sum + (p.budget ?? 0), 0);
+
   return (
     <AppShell active="/projects">
-      <ComingSoon
-        icon={FolderKanban}
-        title="Project Tracking"
-        description="Onboarding → Planning → Building → Review → Changes → Completed, with tasks, deadlines, files, and customer requests."
-        note="The database schema (Project, ProjectTask, ProjectFile, ProjectComment) already exists — this board is next up after the Lead Kanban."
+      <ProjectsPageClient
+        initialProjects={projects}
+        activeCount={activeCount}
+        activeBudget={activeBudget}
       />
     </AppShell>
   );

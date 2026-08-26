@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/layout/app-shell";
 import { IngestionChannels } from "@/components/dashboard/ingestion-channels";
 import { WebhookSimulatorDialog } from "@/components/dashboard/webhook-simulator-dialog";
+import { TelegramConfigForm } from "@/components/webhooks/telegram-config-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -46,9 +47,11 @@ export default async function WebhooksPage() {
   ];
 
   const integrations = [
-    { name: "Telegram notifications", envVar: "TELEGRAM_BOT_TOKEN", configured: !!process.env.TELEGRAM_BOT_TOKEN },
+    { name: "Kaban Copilot (xAI Grok)", envVar: "XAI_API_KEY", configured: !!process.env.XAI_API_KEY },
     { name: "AI research provider", envVar: "AI_RESEARCH_API_KEY", configured: !!process.env.AI_RESEARCH_API_KEY },
   ];
+
+  const telegramConfigured = !!process.env.TELEGRAM_BOT_TOKEN && !!process.env.TELEGRAM_CHAT_ID;
 
   return (
     <AppShell active="/webhooks">
@@ -97,12 +100,10 @@ export default async function WebhooksPage() {
       </div>
 
       <div className="mb-6 grid gap-4 lg:grid-cols-2">
-        <IngestionChannels
-          counts={{
-            INSTANTLY: source("INSTANTLY"),
-            N8N: source("N8N"),
-            MANUAL: source("MANUAL"),
-          }}
+        <TelegramConfigForm
+          configured={telegramConfigured}
+          currentBotToken={process.env.TELEGRAM_BOT_TOKEN ?? ""}
+          currentChatId={process.env.TELEGRAM_CHAT_ID ?? ""}
         />
 
         <Card className="gap-3 py-4">
@@ -127,6 +128,16 @@ export default async function WebhooksPage() {
             </p>
           </CardContent>
         </Card>
+      </div>
+
+      <div className="mb-6">
+        <IngestionChannels
+          counts={{
+            INSTANTLY: source("INSTANTLY"),
+            N8N: source("N8N"),
+            MANUAL: source("MANUAL"),
+          }}
+        />
       </div>
     </AppShell>
   );

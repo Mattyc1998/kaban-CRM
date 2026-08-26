@@ -110,7 +110,7 @@ model LeadActivity {
   @@index([leadId])
 }
 
-// ---------- Project tracking (schema only, UI built later) ----------
+// ---------- Project tracking ----------
 
 enum ProjectStage {
   ONBOARDING
@@ -129,22 +129,44 @@ model Project {
   customer   Customer?    @relation(fields: [customerId], references: [id])
   name       String
   stage      ProjectStage @default(ONBOARDING)
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
 
-  tasks    ProjectTask[]
-  files    ProjectFile[]
-  comments ProjectComment[]
+  clientName  String?
+  clientEmail String?
+  budget      Int?
+  // Overall completion, 0-100. Admin-adjustable, not derived from task
+  // ratio — a project can be "90% done" while only 2/5 tasks are checked
+  // off if the remaining tasks are small.
+  progress    Int      @default(0)
+  // Unguessable slug backing the public /portal/[slug] page. Acts as the
+  // access control until real Customer login (a later phase) exists.
+  portalSlug  String   @unique
+  // Fractional index within a stage column, same pattern as Lead.position.
+  position    Float    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tasks           ProjectTask[]
+  files           ProjectFile[]
+  comments        ProjectComment[]
+  changeRequests  ProjectChangeRequest[]
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
 }
 
 model ProjectTask {
-  id        String    @id @default(cuid())
+  id        String       @id @default(cuid())
   projectId String
-  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project   Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   title     String
-  done      Boolean   @default(false)
+  done      Boolean      @default(false)
+  priority  TaskPriority @default(MEDIUM)
   dueAt     DateTime?
-  createdAt DateTime  @default(now())
+  createdAt DateTime     @default(now())
 
   @@index([projectId])
 }
@@ -169,4 +191,42 @@ model ProjectComment {
   createdAt DateTime @default(now())
 
   @@index([projectId])
+}
+
+enum ChangeRequestStatus {
+  PENDING
+  RESOLVED
+}
+
+model ProjectChangeRequest {
+  id        String               @id @default(cuid())
+  projectId String
+  project   Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  content   String
+  status    ChangeRequestStatus  @default(PENDING)
+  createdAt DateTime             @default(now())
+
+  @@index([projectId])
+}
+
+// ---------- Kaban Copilot ----------
+
+enum CopilotChannel {
+  WEB
+  TELEGRAM
+}
+
+enum CopilotRole {
+  USER
+  ASSISTANT
+}
+
+model CopilotMessage {
+  id        String         @id @default(cuid())
+  channel   CopilotChannel
+  role      CopilotRole
+  content   String
+  createdAt DateTime       @default(now())
+
+  @@index([createdAt])
 }
