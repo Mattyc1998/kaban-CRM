@@ -145,8 +145,13 @@ export function KanbanBoard({ initialLeads }: { initialLeads: Lead[] }) {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold">Lead Pipeline</h1>
+      <div className="mb-5 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Lead Pipeline</h1>
+          <p className="text-sm text-muted-foreground">
+            {allLeads.length} lead{allLeads.length === 1 ? "" : "s"} across the pipeline
+          </p>
+        </div>
         <NewLeadDialog />
       </div>
 
@@ -164,6 +169,8 @@ export function KanbanBoard({ initialLeads }: { initialLeads: Lead[] }) {
               key={stage.key}
               stage={stage.key}
               label={stage.label}
+              accent={stage.accent}
+              dot={stage.dot}
               leads={board[stage.key]}
               onSelectLead={setSelectedLead}
             />
