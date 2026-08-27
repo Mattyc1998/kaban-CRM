@@ -47,9 +47,7 @@ model Customer {
 // ---------- Lead CRM Kanban ----------
 
 enum LeadStage {
-  COLD_LEAD
-  CONTACTED
-  REPLIED
+  INTERESTED
   RESEARCH
   READY_TO_CALL
   CALL_BOOKED
@@ -78,7 +76,7 @@ model Lead {
   email  String?
   phone  String?
 
-  stage    LeadStage  @default(COLD_LEAD)
+  stage    LeadStage  @default(INTERESTED)
   source   LeadSource @default(MANUAL)
   // Fractional index within a column (Trello-style) so reordering never
   // needs to rewrite sibling rows.

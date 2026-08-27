@@ -57,7 +57,7 @@ export function NewLeadDialog() {
           <DialogHeader>
             <DialogTitle>Add a lead</DialogTitle>
             <DialogDescription>
-              New leads start in the Cold Lead column.
+              New leads start in the Interested column.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">

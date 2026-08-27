@@ -10,7 +10,7 @@ type InstantlyReplyPayload = z.infer<typeof instantlyReplyPayloadSchema>;
 // Shared by app/api/webhooks/n8n/route.ts and the in-app webhook simulator
 // (lib/actions/webhooks.ts) so both paths run the exact same ingestion logic.
 export async function ingestN8nLead(data: N8nLeadPayload) {
-  const stage = data.stage ?? "COLD_LEAD";
+  const stage = data.stage ?? "INTERESTED";
 
   const existing = await prisma.lead.findFirst({
     where: {
@@ -86,12 +86,12 @@ export async function ingestInstantlyReply(data: InstantlyReplyPayload) {
   if (existing) {
     const updated = await prisma.lead.update({
       where: { id: existing.id },
-      data: { stage: "REPLIED", externalId: data.externalId ?? existing.externalId },
+      data: { stage: "INTERESTED", externalId: data.externalId ?? existing.externalId },
     });
     leadId = updated.id;
   } else {
     const last = await prisma.lead.findFirst({
-      where: { stage: "REPLIED" },
+      where: { stage: "INTERESTED" },
       orderBy: { position: "desc" },
     });
 
@@ -102,7 +102,7 @@ export async function ingestInstantlyReply(data: InstantlyReplyPayload) {
         email: data.email,
         externalId: data.externalId,
         source: "INSTANTLY",
-        stage: "REPLIED",
+        stage: "INTERESTED",
         position: (last?.position ?? -1) + 1,
       },
     });

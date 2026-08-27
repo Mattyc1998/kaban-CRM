@@ -22,7 +22,7 @@ export async function createLead(input: unknown) {
   const data = createLeadSchema.parse(input);
 
   const last = await prisma.lead.findFirst({
-    where: { stage: "COLD_LEAD" },
+    where: { stage: "INTERESTED" },
     orderBy: { position: "desc" },
   });
 
@@ -33,7 +33,7 @@ export async function createLead(input: unknown) {
       email: data.email || null,
       phone: data.phone || null,
       dealValue: data.dealValue,
-      stage: "COLD_LEAD",
+      stage: "INTERESTED",
       source: "MANUAL",
       position: (last?.position ?? -1) + 1,
     },

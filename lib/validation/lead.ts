@@ -1,9 +1,7 @@
 import { z } from "zod";
 
 export const leadStages = [
-  "COLD_LEAD",
-  "CONTACTED",
-  "REPLIED",
+  "INTERESTED",
   "RESEARCH",
   "READY_TO_CALL",
   "CALL_BOOKED",

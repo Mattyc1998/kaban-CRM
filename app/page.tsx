@@ -88,9 +88,9 @@ export default async function DashboardPage() {
           <StatCard
             icon={MessageSquare}
             iconClassName="bg-amber-500/15 text-amber-400"
-            label="New Replies"
-            value={stage("REPLIED")}
-            sublabel="Prospects awaiting follow-up"
+            label="Interested"
+            value={stage("INTERESTED")}
+            sublabel="Newly added leads"
           />
           <StatCard
             icon={Phone}
