@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Prisma, TaskPriority } from "@prisma/client";
 import { toast } from "sonner";
-import { Copy, ExternalLink, Trash2, Upload, Check } from "lucide-react";
+import { Copy, ExternalLink, Trash2, Upload, Check, Link2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { PROJECT_STAGES } from "@/lib/project-stages";
 import { taskPriorities } from "@/lib/validation/project";
+import { PRIORITY_BADGE } from "@/lib/task-priority";
 import type { ProjectCardData } from "@/components/projects/project-card";
 import {
   getProjectDetail,
@@ -43,17 +44,12 @@ import {
   addMilestone,
   toggleMilestone,
   deleteMilestone,
+  updatePreviewUrl,
 } from "@/lib/actions/projects";
 
 type ProjectDetail = Prisma.ProjectGetPayload<{
   include: { tasks: true; files: true; comments: true; changeRequests: true; milestones: true };
 }>;
-
-const PRIORITY_BADGE: Record<TaskPriority, string> = {
-  LOW: "bg-slate-500/15 text-slate-300 border-slate-500/20",
-  MEDIUM: "bg-amber-500/15 text-amber-400 border-amber-500/20",
-  HIGH: "bg-rose-500/15 text-rose-400 border-rose-500/20",
-};
 
 function portalPath(slug: string) {
   return `/portal/${slug}`;
@@ -74,6 +70,7 @@ export function ProjectDetailDialog({
   const [newMilestoneDue, setNewMilestoneDue] = useState("");
   const [linkName, setLinkName] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
+  const [previewUrlInput, setPreviewUrlInput] = useState("");
   const [pending, startTransition] = useTransition();
   const deliverableFileRef = useRef<HTMLInputElement>(null);
   const mediaFileRef = useRef<HTMLInputElement>(null);
@@ -85,6 +82,7 @@ export function ProjectDetailDialog({
   if ((project?.id ?? null) !== prevProjectId) {
     setPrevProjectId(project?.id ?? null);
     setDetail(null);
+    setPreviewUrlInput(project?.previewUrl ?? "");
   }
 
   useEffect(() => {
@@ -105,6 +103,18 @@ export function ProjectDetailDialog({
     startTransition(async () => {
       await setProjectStage(project!.id, stage as (typeof PROJECT_STAGES)[number]["key"]);
       refresh();
+    });
+  }
+
+  function handleSavePreviewUrl() {
+    startTransition(async () => {
+      try {
+        await updatePreviewUrl({ id: project!.id, previewUrl: previewUrlInput });
+        toast.success(previewUrlInput ? "Preview link saved" : "Preview link removed");
+        refresh();
+      } catch {
+        toast.error("Enter a valid URL");
+      }
     });
   }
 
@@ -256,6 +266,24 @@ export function ProjectDetailDialog({
                 <ExternalLink className="size-3.5" />
               </Button>
             </div>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-border/60 p-3">
+          <p className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <Link2 className="size-3" />
+            Live preview link (shown to the client on their portal)
+          </p>
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder="https://your-staging-url.vercel.app"
+              value={previewUrlInput}
+              onChange={(e) => setPreviewUrlInput(e.target.value)}
+              className="h-8 flex-1"
+            />
+            <Button size="sm" variant="secondary" disabled={pending} onClick={handleSavePreviewUrl}>
+              Save
+            </Button>
           </div>
         </div>
 

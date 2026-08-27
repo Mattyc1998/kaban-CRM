@@ -16,8 +16,13 @@ import {
   Plus,
   Send,
   MessageSquare,
+  ListChecks,
+  Circle,
+  Monitor,
+  ExternalLink,
 } from "lucide-react";
 import { PROJECT_STAGES } from "@/lib/project-stages";
+import { PRIORITY_BADGE } from "@/lib/task-priority";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -33,7 +38,7 @@ import {
 } from "@/lib/actions/portal";
 
 type PortalProject = Prisma.ProjectGetPayload<{
-  include: { files: true; comments: true; milestones: true; changeRequests: true };
+  include: { tasks: true; files: true; comments: true; milestones: true; changeRequests: true };
 }>;
 
 const IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg)$/i;
@@ -185,6 +190,28 @@ export function PortalView({ project }: { project: PortalProject }) {
         </div>
       </div>
 
+      {project.previewUrl && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-cyan-500/25 bg-cyan-500/5 p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex size-9 items-center justify-center rounded-lg bg-cyan-500/15 text-cyan-400">
+              <Monitor className="size-4" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold">Live Preview Available</p>
+              <p className="text-xs text-muted-foreground">Watch your project&apos;s progress in real time</p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            className="bg-cyan-500 text-white hover:bg-cyan-500/90"
+            onClick={() => window.open(project.previewUrl!, "_blank")}
+          >
+            Open Live Preview
+            <ExternalLink className="size-3.5" />
+          </Button>
+        </div>
+      )}
+
       <Card className="mb-4">
         <CardContent className="pt-4">
           <div className="mb-2 flex items-center justify-between">
@@ -238,6 +265,44 @@ export function PortalView({ project }: { project: PortalProject }) {
           </div>
         </CardContent>
       </Card>
+
+      {project.tasks.length > 0 && (
+        <Card className="mb-4">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <ListChecks className="size-4 text-primary" />
+              Project Tasks
+              <span className="ml-auto text-xs font-normal text-muted-foreground">
+                {project.tasks.filter((t) => t.done).length}/{project.tasks.length} complete
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="flex flex-col divide-y divide-border/60">
+              {project.tasks.map((task) => (
+                <div key={task.id} className="flex items-center gap-2.5 py-2">
+                  {task.done ? (
+                    <Check className="size-4 shrink-0 text-emerald-400" />
+                  ) : (
+                    <Circle className="size-4 shrink-0 text-muted-foreground" />
+                  )}
+                  <span
+                    className={cn(
+                      "flex-1 text-sm",
+                      task.done && "text-muted-foreground line-through"
+                    )}
+                  >
+                    {task.title}
+                  </span>
+                  <Badge variant="outline" className={cn("text-[10px]", PRIORITY_BADGE[task.priority])}>
+                    {task.priority}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="mb-4">
         <CardHeader>

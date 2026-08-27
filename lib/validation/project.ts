@@ -85,3 +85,8 @@ export const toggleMilestoneSchema = z.object({
 export const deleteMilestoneSchema = z.object({
   milestoneId: z.string().min(1),
 });
+
+export const updatePreviewUrlSchema = z.object({
+  id: z.string().min(1),
+  previewUrl: z.string().url().optional().or(z.literal("")),
+});

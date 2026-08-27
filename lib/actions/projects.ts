@@ -18,6 +18,7 @@ import {
   addMilestoneSchema,
   toggleMilestoneSchema,
   deleteMilestoneSchema,
+  updatePreviewUrlSchema,
   projectStages,
 } from "@/lib/validation/project";
 
@@ -103,6 +104,18 @@ export async function setProjectStage(id: string, stage: (typeof projectStages)[
   await prisma.project.update({
     where: { id },
     data: { stage, position: (last?.position ?? -1) + 1 },
+  });
+
+  revalidateProjects();
+}
+
+export async function updatePreviewUrl(input: unknown) {
+  await requireSession();
+  const data = updatePreviewUrlSchema.parse(input);
+
+  await prisma.project.update({
+    where: { id: data.id },
+    data: { previewUrl: data.previewUrl || null },
   });
 
   revalidateProjects();

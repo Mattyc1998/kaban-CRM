@@ -153,6 +153,9 @@ model Project {
   portalSlug  String   @unique
   // Fractional index within a stage column, same pattern as Lead.position.
   position    Float    @default(0)
+  // Optional staging/live URL the client can open from the portal to watch
+  // progress in real time (e.g. a Vercel preview deployment).
+  previewUrl  String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

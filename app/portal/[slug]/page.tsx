@@ -7,6 +7,7 @@ async function getProject(slug: string) {
   return prisma.project.findUnique({
     where: { portalSlug: slug },
     include: {
+      tasks: { orderBy: { createdAt: "asc" } },
       files: { orderBy: { createdAt: "desc" } },
       comments: { orderBy: { createdAt: "desc" } },
       milestones: { orderBy: { dueAt: "asc" } },
