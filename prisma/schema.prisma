@@ -6,6 +6,18 @@ datasource db {
   provider = "postgresql"
 }
 
+// ---------- Runtime settings (DB-backed, not .env) ----------
+
+// Small key/value store for settings editable from the UI at runtime —
+// e.g. Telegram bot token/chat ID. Vercel's production filesystem is
+// read-only, so these can't be written to .env like local dev; the DB is
+// the one place that works in both environments.
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
 // ---------- Auth ----------
 
 enum UserRole {

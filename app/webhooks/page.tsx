@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { Webhook, Send, Sparkles, Copy } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { getSetting } from "@/lib/integrations/settings-store";
 import { AppShell } from "@/components/layout/app-shell";
 import { IngestionChannels } from "@/components/dashboard/ingestion-channels";
 import { WebhookSimulatorDialog } from "@/components/dashboard/webhook-simulator-dialog";
@@ -51,7 +52,12 @@ export default async function WebhooksPage() {
     { name: "AI research provider", envVar: "AI_RESEARCH_API_KEY", configured: !!process.env.AI_RESEARCH_API_KEY },
   ];
 
-  const telegramConfigured = !!process.env.TELEGRAM_BOT_TOKEN && !!process.env.TELEGRAM_CHAT_ID;
+  const [telegramBotToken, telegramChatId, telegramWebhookEnabled] = await Promise.all([
+    getSetting("TELEGRAM_BOT_TOKEN"),
+    getSetting("TELEGRAM_CHAT_ID"),
+    getSetting("TELEGRAM_WEBHOOK_ENABLED"),
+  ]);
+  const telegramConfigured = !!telegramBotToken && !!telegramChatId;
 
   return (
     <AppShell active="/webhooks">
@@ -102,8 +108,9 @@ export default async function WebhooksPage() {
       <div className="mb-6 grid gap-4 lg:grid-cols-2">
         <TelegramConfigForm
           configured={telegramConfigured}
-          currentBotToken={process.env.TELEGRAM_BOT_TOKEN ?? ""}
-          currentChatId={process.env.TELEGRAM_CHAT_ID ?? ""}
+          currentBotToken={telegramBotToken ?? ""}
+          currentChatId={telegramChatId ?? ""}
+          webhookEnabled={telegramWebhookEnabled === "true"}
         />
 
         <Card className="gap-3 py-4">

@@ -1,48 +1,60 @@
 import "dotenv/config";
 import { runCopilotTurn } from "../lib/copilot/core";
+import { getSetting } from "../lib/integrations/settings-store";
 
-const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+// Local-only alternative to the production webhook (app/api/telegram/webhook).
+// Note: Telegram allows only one delivery mode per bot at a time — running
+// this while the webhook is enabled (Webhooks & Settings page) will make
+// Telegram reject getUpdates with a 409 Conflict. Use one or the other.
 
-if (!TOKEN || !CHAT_ID) {
-  console.error(
-    "TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID must be set (Webhooks & Settings page, or .env) before running this script."
-  );
-  process.exit(1);
-}
+async function main() {
+  const token = await getSetting("TELEGRAM_BOT_TOKEN");
+  const chatId = await getSetting("TELEGRAM_CHAT_ID");
 
-const API = `https://api.telegram.org/bot${TOKEN}`;
-
-async function sendReply(text: string) {
-  const res = await fetch(`${API}/sendMessage`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: CHAT_ID, text }),
-  });
-  if (!res.ok) {
-    console.error(`[telegram-bot] send failed: ${res.status} ${await res.text()}`);
+  if (!token || !chatId) {
+    console.error(
+      "TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID must be set (Webhooks & Settings page, or .env) before running this script."
+    );
+    process.exit(1);
   }
-}
 
-type TelegramUpdate = {
-  update_id: number;
-  message?: { chat: { id: number }; text?: string };
-};
+  const API = `https://api.telegram.org/bot${token}`;
 
-let offset = 0;
-let running = true;
+  async function sendReply(text: string) {
+    const res = await fetch(`${API}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, text }),
+    });
+    if (!res.ok) {
+      console.error(`[telegram-bot] send failed: ${res.status} ${await res.text()}`);
+    }
+  }
 
-async function poll() {
-  console.log(`[telegram-bot] listening for messages from chat ${CHAT_ID}... (Ctrl+C to stop)`);
+  type TelegramUpdate = {
+    update_id: number;
+    message?: { chat: { id: number }; text?: string };
+  };
+
+  let offset = 0;
+  let running = true;
+
+  process.on("SIGINT", () => {
+    console.log("\n[telegram-bot] shutting down...");
+    running = false;
+    process.exit(0);
+  });
+
+  console.log(`[telegram-bot] listening for messages from chat ${chatId}... (Ctrl+C to stop)`);
 
   while (running) {
     try {
-      const res = await fetch(
-        `${API}/getUpdates?offset=${offset}&timeout=30`,
-        { signal: AbortSignal.timeout(35_000) }
-      );
+      const res = await fetch(`${API}/getUpdates?offset=${offset}&timeout=30`, {
+        signal: AbortSignal.timeout(35_000),
+      });
       if (!res.ok) {
-        console.error(`[telegram-bot] getUpdates failed: ${res.status}`);
+        const body = await res.text();
+        console.error(`[telegram-bot] getUpdates failed: ${res.status} ${body}`);
         await new Promise((r) => setTimeout(r, 5000));
         continue;
       }
@@ -53,7 +65,7 @@ async function poll() {
         offset = update.update_id + 1;
         const message = update.message;
         if (!message?.text) continue;
-        if (String(message.chat.id) !== String(CHAT_ID)) {
+        if (String(message.chat.id) !== String(chatId)) {
           console.log(`[telegram-bot] ignoring message from unconfigured chat ${message.chat.id}`);
           continue;
         }
@@ -75,10 +87,4 @@ async function poll() {
   }
 }
 
-process.on("SIGINT", () => {
-  console.log("\n[telegram-bot] shutting down...");
-  running = false;
-  process.exit(0);
-});
-
-poll();
+main();

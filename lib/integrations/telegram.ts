@@ -1,6 +1,8 @@
+import { getSetting } from "@/lib/integrations/settings-store";
+
 export async function sendTelegramNotification(message: string): Promise<void> {
-  const token = process.env.TELEGRAM_BOT_TOKEN;
-  const chatId = process.env.TELEGRAM_CHAT_ID;
+  const token = await getSetting("TELEGRAM_BOT_TOKEN");
+  const chatId = await getSetting("TELEGRAM_CHAT_ID");
 
   if (!token || !chatId) {
     console.log(`[telegram:stub] would send: ${message}`);

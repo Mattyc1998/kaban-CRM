@@ -3,13 +3,13 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Send, Terminal } from "lucide-react";
+import { Send, Radio, Terminal } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { saveTelegramConfig } from "@/lib/actions/settings";
+import { saveTelegramConfig, enableTelegramWebhook } from "@/lib/actions/settings";
 
 function mask(value: string) {
   if (!value) return "";
@@ -21,14 +21,17 @@ export function TelegramConfigForm({
   configured,
   currentBotToken,
   currentChatId,
+  webhookEnabled,
 }: {
   configured: boolean;
   currentBotToken: string;
   currentChatId: string;
+  webhookEnabled: boolean;
 }) {
   const [botToken, setBotToken] = useState("");
   const [chatId, setChatId] = useState("");
-  const [pending, startTransition] = useTransition();
+  const [savePending, startSaveTransition] = useTransition();
+  const [webhookPending, startWebhookTransition] = useTransition();
   const router = useRouter();
 
   function handleSave() {
@@ -36,7 +39,7 @@ export function TelegramConfigForm({
       toast.error("Enter both the bot token and chat ID");
       return;
     }
-    startTransition(async () => {
+    startSaveTransition(async () => {
       try {
         await saveTelegramConfig({ botToken, chatId });
         toast.success("Telegram connected");
@@ -45,6 +48,18 @@ export function TelegramConfigForm({
         router.refresh();
       } catch {
         toast.error("Failed to save Telegram config");
+      }
+    });
+  }
+
+  function handleEnableWebhook() {
+    startWebhookTransition(async () => {
+      const result = await enableTelegramWebhook();
+      if (result.ok) {
+        toast.success("Telegram webhook enabled — message your bot to try it");
+        router.refresh();
+      } else {
+        toast.error(result.error ?? "Failed to enable webhook");
       }
     });
   }
@@ -113,14 +128,33 @@ export function TelegramConfigForm({
             placeholder={configured ? "Enter a new chat ID to replace it" : "123456789"}
           />
         </div>
-        <Button size="sm" disabled={pending} onClick={handleSave}>
-          {pending ? "Saving..." : "Save & connect"}
+        <Button size="sm" disabled={savePending} onClick={handleSave}>
+          {savePending ? "Saving..." : "Save & connect"}
         </Button>
+
+        {configured && (
+          <div className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5">
+            <div className="flex items-center gap-2">
+              <Radio className="size-3.5 text-primary" />
+              <span className="text-xs">
+                {webhookEnabled ? "Webhook is live" : "Webhook not enabled yet"}
+              </span>
+            </div>
+            <Button
+              size="xs"
+              variant={webhookEnabled ? "outline" : "default"}
+              disabled={webhookPending}
+              onClick={handleEnableWebhook}
+            >
+              {webhookPending ? "Enabling..." : webhookEnabled ? "Re-enable" : "Enable webhook"}
+            </Button>
+          </div>
+        )}
 
         <p className="flex items-center gap-1.5 pt-1 text-[11px] text-muted-foreground">
           <Terminal className="size-3" />
-          Run <code className="rounded bg-muted px-1 py-0.5">npm run telegram:bot</code> in a
-          separate terminal to start chatting with the Copilot on Telegram.
+          Or run <code className="rounded bg-muted px-1 py-0.5">npm run telegram:bot</code> locally
+          instead of the webhook — useful when developing without a public URL.
         </p>
       </CardContent>
     </Card>
