@@ -14,6 +14,7 @@ export const taskPriorities = ["LOW", "MEDIUM", "HIGH"] as const;
 export const createProjectSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
   clientName: z.string().max(200).optional().or(z.literal("")),
+  clientCompany: z.string().max(200).optional().or(z.literal("")),
   clientEmail: z.string().email().optional().or(z.literal("")),
   budget: z.coerce.number().int().min(0).optional(),
   leadId: z.string().optional(),

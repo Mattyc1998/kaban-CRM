@@ -41,16 +41,36 @@ export async function createProject(input: unknown) {
     orderBy: { position: "desc" },
   });
 
+  const lead = data.leadId
+    ? await prisma.lead.findUnique({ where: { id: data.leadId } })
+    : null;
+
   const project = await prisma.project.create({
     data: {
       name: data.name,
       clientName: data.clientName || null,
+      clientCompany: data.clientCompany || null,
       clientEmail: data.clientEmail || null,
       budget: data.budget,
       leadId: data.leadId || null,
       portalSlug: generatePortalSlug(data.name),
       stage: "ONBOARDING",
       position: (last?.position ?? -1) + 1,
+    },
+  });
+
+  // Logged into Direct Project Messages so the creation event (and the
+  // fact a portal link now exists) is visible in the same thread the
+  // client sees, not just buried in an admin-only audit trail.
+  await prisma.projectComment.create({
+    data: {
+      projectId: project.id,
+      author: "System",
+      content: lead
+        ? `Project automatically created from Won Lead "${lead.name}"${
+            lead.dealValue ? ` ($${lead.dealValue.toLocaleString()})` : ""
+          }. Portal link generated.`
+        : `Project created. Portal link generated.`,
     },
   });
 

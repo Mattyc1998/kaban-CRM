@@ -13,6 +13,9 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
+  Plus,
+  Send,
+  MessageSquare,
 } from "lucide-react";
 import { PROJECT_STAGES } from "@/lib/project-stages";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,7 +33,7 @@ import {
 } from "@/lib/actions/portal";
 
 type PortalProject = Prisma.ProjectGetPayload<{
-  include: { files: true; comments: true; milestones: true };
+  include: { files: true; comments: true; milestones: true; changeRequests: true };
 }>;
 
 const IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg)$/i;
@@ -42,20 +45,27 @@ function milestoneStatus(m: { completed: boolean; dueAt: Date | null }) {
   return { label: "Upcoming", className: "border-cyan-500/25 bg-cyan-500/10 text-cyan-400", icon: Clock };
 }
 
+function messageSender(author: string) {
+  if (author === "System") return { label: "System (Team Lead)", className: "text-emerald-400" };
+  if (author === "Kaban Copilot") return { label: "Kaban Copilot", className: "text-primary" };
+  return { label: author, className: "text-foreground" };
+}
+
 export function PortalView({ project }: { project: PortalProject }) {
   const stageMeta = PROJECT_STAGES.find((s) => s.key === project.stage)!;
   const stageIndex = PROJECT_STAGES.findIndex((s) => s.key === project.stage);
 
   const [pending, startTransition] = useTransition();
-  const [commentAuthor, setCommentAuthor] = useState("");
   const [commentText, setCommentText] = useState("");
   const [changeText, setChangeText] = useState("");
+  const [showChangeForm, setShowChangeForm] = useState(false);
   const [uploaderName, setUploaderName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRef = useRef<HTMLDivElement>(null);
-  const changeRef = useRef<HTMLDivElement>(null);
+  const changeRequestsRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
+  const clientDisplayName = project.clientName || project.clientCompany || "Client";
   const deliverables = project.files.filter((f) => f.kind === "DELIVERABLE");
   const media = project.files.filter((f) => f.kind === "MEDIA");
 
@@ -64,14 +74,10 @@ export function PortalView({ project }: { project: PortalProject }) {
   }
 
   function handleAddComment() {
-    if (!commentAuthor.trim() || !commentText.trim()) {
-      toast.error("Add your name and a message");
-      return;
-    }
+    if (!commentText.trim()) return;
     startTransition(async () => {
-      await submitPortalComment({ slug: project.portalSlug, author: commentAuthor, content: commentText });
+      await submitPortalComment({ slug: project.portalSlug, author: clientDisplayName, content: commentText });
       setCommentText("");
-      toast.success("Comment posted");
       router.refresh();
     });
   }
@@ -81,6 +87,7 @@ export function PortalView({ project }: { project: PortalProject }) {
     startTransition(async () => {
       await submitChangeRequest({ slug: project.portalSlug, content: changeText });
       setChangeText("");
+      setShowChangeForm(false);
       toast.success("Change request sent");
       router.refresh();
     });
@@ -140,9 +147,14 @@ export function PortalView({ project }: { project: PortalProject }) {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-card p-4">
         <div className="flex items-center gap-3">
           <div className="flex size-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-violet-500 text-sm font-bold text-primary-foreground">
-            {(project.clientName || project.name)[0]?.toUpperCase()}
+            {(project.clientCompany || project.clientName || project.name)[0]?.toUpperCase()}
           </div>
           <div>
+            {project.clientCompany && (
+              <p className="text-sm font-bold uppercase leading-tight tracking-wide text-primary">
+                {project.clientCompany}
+              </p>
+            )}
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-semibold">{project.name}</h1>
               <Badge variant="outline" className="border-primary/25 bg-primary/10 text-[10px] text-primary">
@@ -159,7 +171,14 @@ export function PortalView({ project }: { project: PortalProject }) {
             <Upload className="size-3.5" />
             Upload Media
           </Button>
-          <Button variant="destructive" size="sm" onClick={() => scrollTo(changeRef)}>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => {
+              scrollTo(changeRequestsRef);
+              setShowChangeForm(true);
+            }}
+          >
             <AlertTriangle className="size-3.5" />
             Request Changes
           </Button>
@@ -356,62 +375,107 @@ export function PortalView({ project }: { project: PortalProject }) {
         </CardContent>
       </Card>
 
-      <Card className="mb-4">
-        <CardHeader>
-          <CardTitle className="text-sm">Updates &amp; Comments</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-2">
-            {project.comments.length === 0 && (
-              <p className="text-sm text-muted-foreground">No updates yet.</p>
-            )}
-            {project.comments.map((c) => (
-              <div key={c.id} className="rounded-lg border border-border/60 px-3 py-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium">{c.author}</span>
-                  <span className="text-[11px] text-muted-foreground">
-                    {new Date(c.createdAt).toLocaleString()}
-                  </span>
-                </div>
-                <p className="mt-1 text-sm">{c.content}</p>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card ref={changeRequestsRef}>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between text-sm">
+              <span className="flex items-center gap-2">
+                <AlertCircle className="size-4 text-rose-400" />
+                Your Change Requests
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowChangeForm((v) => !v)}
+                className="flex items-center gap-1 text-xs font-medium text-rose-400 hover:underline"
+              >
+                <Plus className="size-3" />
+                New Request
+              </button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {showChangeForm && (
+              <div className="space-y-2 rounded-lg border border-rose-500/20 bg-rose-500/5 p-2.5">
+                <Textarea
+                  placeholder="Describe what you'd like changed..."
+                  rows={2}
+                  value={changeText}
+                  onChange={(e) => setChangeText(e.target.value)}
+                  autoFocus
+                />
+                <Button size="xs" disabled={pending} onClick={handleRequestChange}>
+                  Submit request
+                </Button>
               </div>
-            ))}
-          </div>
-          <div className="space-y-2 border-t border-border/60 pt-3">
-            <Input
-              placeholder="Your name"
-              value={commentAuthor}
-              onChange={(e) => setCommentAuthor(e.target.value)}
-            />
-            <Textarea
-              placeholder="Leave a comment or question..."
-              rows={2}
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-            />
-            <Button size="sm" disabled={pending} onClick={handleAddComment}>
-              Post comment
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            )}
+            {project.changeRequests.length === 0 ? (
+              <p className="py-2 text-center text-sm text-muted-foreground">No change requests active.</p>
+            ) : (
+              project.changeRequests.map((cr) => (
+                <div key={cr.id} className="rounded-lg border border-border/60 px-3 py-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <Badge
+                      variant="outline"
+                      className={
+                        cr.status === "PENDING"
+                          ? "border-rose-500/20 bg-rose-500/15 text-rose-400"
+                          : "border-emerald-500/20 bg-emerald-500/15 text-emerald-400"
+                      }
+                    >
+                      {cr.status}
+                    </Badge>
+                    <span className="text-[11px] text-muted-foreground">
+                      {new Date(cr.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <p className="mt-1.5 text-sm">{cr.content}</p>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
 
-      <Card ref={changeRef}>
-        <CardHeader>
-          <CardTitle className="text-sm">Request a change</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <Textarea
-            placeholder="Describe what you'd like changed..."
-            rows={3}
-            value={changeText}
-            onChange={(e) => setChangeText(e.target.value)}
-          />
-          <Button size="sm" disabled={pending} onClick={handleRequestChange}>
-            Submit request
-          </Button>
-        </CardContent>
-      </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <MessageSquare className="size-4 text-amber-400" />
+              Direct Project Messages
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Ask a question or leave feedback..."
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAddComment()}
+              />
+              <Button size="icon" disabled={pending} onClick={handleAddComment}>
+                <Send className="size-4" />
+              </Button>
+            </div>
+            <div className="max-h-80 space-y-2 overflow-y-auto">
+              {project.comments.length === 0 && (
+                <p className="py-2 text-center text-sm text-muted-foreground">No messages yet.</p>
+              )}
+              {project.comments.map((c) => {
+                const sender = messageSender(c.author);
+                return (
+                  <div key={c.id} className="rounded-lg border border-border/60 px-3 py-2">
+                    <div className="flex items-center justify-between">
+                      <span className={cn("text-xs font-medium", sender.className)}>{sender.label}</span>
+                      <span className="text-[11px] text-muted-foreground">
+                        {new Date(c.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm">{c.content}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

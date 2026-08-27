@@ -227,7 +227,9 @@ export function ProjectDetailDialog({
         <DialogHeader>
           <DialogTitle>{project.name}</DialogTitle>
           <DialogDescription>
-            {project.clientName ? `Client: ${project.clientName}` : "No client set"}
+            {project.clientCompany || project.clientName
+              ? `Client: ${[project.clientCompany, project.clientName].filter(Boolean).join(" — ")}`
+              : "No client set"}
             {project.clientEmail && ` (${project.clientEmail})`}
           </DialogDescription>
         </DialogHeader>

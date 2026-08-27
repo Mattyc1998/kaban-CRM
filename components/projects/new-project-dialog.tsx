@@ -29,6 +29,7 @@ export function NewProjectDialog() {
         await createProject({
           name: formData.get("name"),
           clientName: formData.get("clientName"),
+          clientCompany: formData.get("clientCompany"),
           clientEmail: formData.get("clientEmail"),
           budget: formData.get("budget") || undefined,
         });
@@ -67,6 +68,10 @@ export function NewProjectDialog() {
             <div className="grid gap-2">
               <Label htmlFor="p-client">Client name</Label>
               <Input id="p-client" name="clientName" />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="p-company">Client business name</Label>
+              <Input id="p-company" name="clientCompany" placeholder="Shown prominently on their portal" />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="p-email">Client email</Label>

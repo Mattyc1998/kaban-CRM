@@ -140,9 +140,10 @@ model Project {
   name       String
   stage      ProjectStage @default(ONBOARDING)
 
-  clientName  String?
-  clientEmail String?
-  budget      Int?
+  clientName    String?
+  clientCompany String?
+  clientEmail   String?
+  budget        Int?
   // Overall completion, 0-100. Admin-adjustable, not derived from task
   // ratio — a project can be "90% done" while only 2/5 tasks are checked
   // off if the remaining tasks are small.

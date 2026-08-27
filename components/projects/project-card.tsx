@@ -66,8 +66,10 @@ export function ProjectCard({
         </div>
 
         <p className="mt-2 truncate text-sm font-medium leading-tight">{project.name}</p>
-        {project.clientName && (
-          <p className="truncate text-xs text-muted-foreground">Client: {project.clientName}</p>
+        {(project.clientCompany || project.clientName) && (
+          <p className="truncate text-xs text-muted-foreground">
+            Client: {[project.clientCompany, project.clientName].filter(Boolean).join(" — ")}
+          </p>
         )}
 
         <div className="mt-2.5 flex items-center gap-2">
