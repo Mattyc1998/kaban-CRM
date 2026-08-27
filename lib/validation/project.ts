@@ -65,3 +65,22 @@ export const addDeliverableSchema = z.object({
   name: z.string().min(1).max(200),
   url: z.string().url(),
 });
+
+export const approveDeliverableSchema = z.object({
+  fileId: z.string().min(1),
+});
+
+export const addMilestoneSchema = z.object({
+  projectId: z.string().min(1),
+  title: z.string().min(1).max(200),
+  dueAt: z.coerce.date().optional(),
+});
+
+export const toggleMilestoneSchema = z.object({
+  milestoneId: z.string().min(1),
+  completed: z.boolean(),
+});
+
+export const deleteMilestoneSchema = z.object({
+  milestoneId: z.string().min(1),
+});

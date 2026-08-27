@@ -7,7 +7,7 @@ export default async function ProjectsPage() {
     orderBy: [{ stage: "asc" }, { position: "asc" }],
     include: {
       tasks: { select: { id: true, done: true } },
-      files: { select: { id: true } },
+      files: { where: { kind: "DELIVERABLE" }, select: { id: true } },
       changeRequests: { where: { status: "PENDING" }, select: { id: true } },
     },
   });

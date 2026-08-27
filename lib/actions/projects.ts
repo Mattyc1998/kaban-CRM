@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generatePortalSlug } from "@/lib/integrations/portal";
+import { uploadProjectFile } from "@/lib/integrations/blob-storage";
 import {
   createProjectSchema,
   moveProjectSchema,
@@ -14,6 +15,9 @@ import {
   addCommentSchema,
   resolveChangeRequestSchema,
   addDeliverableSchema,
+  addMilestoneSchema,
+  toggleMilestoneSchema,
+  deleteMilestoneSchema,
   projectStages,
 } from "@/lib/validation/project";
 
@@ -158,9 +162,61 @@ export async function addDeliverable(input: unknown) {
   const data = addDeliverableSchema.parse(input);
 
   await prisma.projectFile.create({
-    data: { projectId: data.projectId, name: data.name, url: data.url },
+    data: { projectId: data.projectId, name: data.name, url: data.url, kind: "DELIVERABLE" },
   });
 
+  revalidateProjects();
+}
+
+// Admin-side file upload, used for both deliverables and media — mirrors
+// the client-facing lib/actions/portal.ts#uploadPortalMedia.
+export async function uploadProjectFileAction(formData: FormData) {
+  await requireSession();
+
+  const projectId = formData.get("projectId");
+  const kind = formData.get("kind");
+  const file = formData.get("file");
+  if (typeof projectId !== "string" || !projectId) throw new Error("Missing projectId");
+  if (kind !== "DELIVERABLE" && kind !== "MEDIA") throw new Error("Invalid kind");
+  if (!(file instanceof File) || file.size === 0) throw new Error("No file provided");
+
+  const uploaded = await uploadProjectFile(projectId, file);
+
+  await prisma.projectFile.create({
+    data: { projectId, kind, url: uploaded.url, name: uploaded.name, uploadedBy: "admin" },
+  });
+
+  revalidateProjects();
+}
+
+export async function addMilestone(input: unknown) {
+  await requireSession();
+  const data = addMilestoneSchema.parse(input);
+
+  await prisma.projectMilestone.create({
+    data: { projectId: data.projectId, title: data.title, dueAt: data.dueAt },
+  });
+
+  revalidateProjects();
+}
+
+export async function toggleMilestone(input: unknown) {
+  await requireSession();
+  const data = toggleMilestoneSchema.parse(input);
+
+  await prisma.projectMilestone.update({
+    where: { id: data.milestoneId },
+    data: { completed: data.completed },
+  });
+
+  revalidateProjects();
+}
+
+export async function deleteMilestone(input: unknown) {
+  await requireSession();
+  const data = deleteMilestoneSchema.parse(input);
+
+  await prisma.projectMilestone.delete({ where: { id: data.milestoneId } });
   revalidateProjects();
 }
 
@@ -173,6 +229,7 @@ export async function getProjectDetail(projectId: string) {
       files: { orderBy: { createdAt: "desc" } },
       comments: { orderBy: { createdAt: "desc" } },
       changeRequests: { orderBy: { createdAt: "desc" } },
+      milestones: { orderBy: { dueAt: "asc" } },
     },
   });
 }

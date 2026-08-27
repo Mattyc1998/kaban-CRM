@@ -1,9 +1,19 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { Prisma } from "@prisma/client";
+import {
+  Check,
+  ImageIcon,
+  Upload,
+  AlertTriangle,
+  FileText,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+} from "lucide-react";
 import { PROJECT_STAGES } from "@/lib/project-stages";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,11 +21,26 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { submitChangeRequest, submitPortalComment } from "@/lib/actions/portal";
+import { cn } from "@/lib/utils";
+import {
+  submitChangeRequest,
+  submitPortalComment,
+  uploadPortalMedia,
+  approvePortalDeliverable,
+} from "@/lib/actions/portal";
 
 type PortalProject = Prisma.ProjectGetPayload<{
-  include: { files: true; comments: true };
+  include: { files: true; comments: true; milestones: true };
 }>;
+
+const IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg)$/i;
+
+function milestoneStatus(m: { completed: boolean; dueAt: Date | null }) {
+  if (m.completed) return { label: "Completed", className: "border-emerald-500/25 bg-emerald-500/10 text-emerald-400", icon: CheckCircle2 };
+  if (m.dueAt && new Date(m.dueAt) < new Date())
+    return { label: "Overdue", className: "border-rose-500/25 bg-rose-500/10 text-rose-400", icon: AlertCircle };
+  return { label: "Upcoming", className: "border-cyan-500/25 bg-cyan-500/10 text-cyan-400", icon: Clock };
+}
 
 export function PortalView({ project }: { project: PortalProject }) {
   const stageMeta = PROJECT_STAGES.find((s) => s.key === project.stage)!;
@@ -25,7 +50,18 @@ export function PortalView({ project }: { project: PortalProject }) {
   const [commentAuthor, setCommentAuthor] = useState("");
   const [commentText, setCommentText] = useState("");
   const [changeText, setChangeText] = useState("");
+  const [uploaderName, setUploaderName] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const mediaRef = useRef<HTMLDivElement>(null);
+  const changeRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  const deliverables = project.files.filter((f) => f.kind === "DELIVERABLE");
+  const media = project.files.filter((f) => f.kind === "MEDIA");
+
+  function scrollTo(ref: React.RefObject<HTMLDivElement | null>) {
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   function handleAddComment() {
     if (!commentAuthor.trim() || !commentText.trim()) {
@@ -50,64 +86,273 @@ export function PortalView({ project }: { project: PortalProject }) {
     });
   }
 
+  function handleUploadClick() {
+    scrollTo(mediaRef);
+    if (!uploaderName.trim()) {
+      toast.error("Enter your name first, then choose a file");
+      return;
+    }
+    fileInputRef.current?.click();
+  }
+
+  function handleFileSelected(file: File | undefined) {
+    if (!file) return;
+    if (!uploaderName.trim()) {
+      toast.error("Enter your name before uploading");
+      return;
+    }
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.set("slug", project.portalSlug);
+      formData.set("uploadedBy", uploaderName);
+      formData.set("file", file);
+      try {
+        await uploadPortalMedia(formData);
+        toast.success("Uploaded");
+        router.refresh();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Upload failed");
+      }
+    });
+  }
+
+  function handleApprove(fileId: string) {
+    startTransition(async () => {
+      await approvePortalDeliverable({ slug: project.portalSlug, fileId });
+      toast.success("Marked approved");
+      router.refresh();
+    });
+  }
+
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10">
-      <div className="mb-6 flex items-center gap-2.5">
-        <div className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-violet-500 text-sm font-bold text-primary-foreground">
-          K
+    <div className="mx-auto max-w-3xl px-4 py-8">
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <div className="flex size-7 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-violet-500 text-xs font-bold text-primary-foreground">
+            K
+          </div>
+          <span className="text-sm font-semibold tracking-tight text-muted-foreground">
+            Kaban CRM Client Portal
+          </span>
         </div>
-        <span className="text-sm font-semibold tracking-tight text-muted-foreground">
-          Kaban CRM Client Portal
-        </span>
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-card p-4">
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-violet-500 text-sm font-bold text-primary-foreground">
+            {(project.clientName || project.name)[0]?.toUpperCase()}
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-semibold">{project.name}</h1>
+              <Badge variant="outline" className="border-primary/25 bg-primary/10 text-[10px] text-primary">
+                Client Portal
+              </Badge>
+            </div>
+            {project.clientName && (
+              <p className="text-xs text-muted-foreground">Welcome, {project.clientName}</p>
+            )}
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handleUploadClick}>
+            <Upload className="size-3.5" />
+            Upload Media
+          </Button>
+          <Button variant="destructive" size="sm" onClick={() => scrollTo(changeRef)}>
+            <AlertTriangle className="size-3.5" />
+            Request Changes
+          </Button>
+        </div>
       </div>
 
       <Card className="mb-4">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-xl">{project.name}</CardTitle>
-            <Badge variant="outline" className={stageMeta.badgeClassName}>
-              {stageMeta.label}
-            </Badge>
+        <CardContent className="pt-4">
+          <div className="mb-2 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-primary">
+                Live Delivery Pipeline
+              </p>
+              <p className="text-base font-semibold">Current Phase: {stageMeta.label.toUpperCase()}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-xl font-bold text-emerald-400">{project.progress}%</p>
+              <p className="text-[10px] text-muted-foreground">Overall Progress</p>
+            </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-4 flex items-center gap-2">
-            <Progress value={project.progress} className="h-2 flex-1" />
-            <span className="text-sm font-semibold tabular-nums">{project.progress}%</span>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {PROJECT_STAGES.map((s, i) => (
-              <Badge
-                key={s.key}
-                variant="outline"
-                className={i <= stageIndex ? s.badgeClassName : "text-muted-foreground/50"}
-              >
-                {s.label}
-              </Badge>
-            ))}
+          <Progress
+            value={project.progress}
+            className="mb-4 h-2 [&_[data-slot=progress-indicator]]:bg-gradient-to-r [&_[data-slot=progress-indicator]]:from-primary [&_[data-slot=progress-indicator]]:to-teal-400"
+          />
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+            {PROJECT_STAGES.map((s, i) => {
+              const isDone = i < stageIndex;
+              const isCurrent = i === stageIndex;
+              return (
+                <div
+                  key={s.key}
+                  className={cn(
+                    "flex flex-col items-center gap-1 rounded-lg border px-2 py-2.5 text-center",
+                    isCurrent
+                      ? "border-primary/50 bg-primary/10"
+                      : isDone
+                      ? "border-emerald-500/20 bg-emerald-500/5"
+                      : "border-border/60 bg-muted/20"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "flex size-6 items-center justify-center rounded-full text-[11px] font-semibold",
+                      isCurrent
+                        ? "bg-primary text-primary-foreground"
+                        : isDone
+                        ? "bg-emerald-500/20 text-emerald-400"
+                        : "bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {isDone ? <Check className="size-3.5" /> : i + 1}
+                  </div>
+                  <span className="text-[10px] font-medium text-foreground/80">{s.label}</span>
+                </div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
 
       <Card className="mb-4">
         <CardHeader>
-          <CardTitle className="text-sm">Deliverables</CardTitle>
+          <CardTitle className="flex items-center justify-between text-sm">
+            <span className="flex items-center gap-2">
+              <FileText className="size-4 text-primary" />
+              Project Deliverables &amp; Digital Sign-Off
+            </span>
+            <span className="text-xs font-normal text-muted-foreground">
+              Review and approve completed assets
+            </span>
+          </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-1.5">
-          {project.files.length === 0 && (
-            <p className="text-sm text-muted-foreground">Nothing shared yet.</p>
+        <CardContent className="space-y-2">
+          {deliverables.length === 0 && (
+            <p className="text-sm text-muted-foreground">No deliverables pending review at this stage.</p>
           )}
-          {project.files.map((f) => (
-            <a
+          {deliverables.map((f) => (
+            <div
               key={f.id}
-              href={f.url}
-              target="_blank"
-              rel="noreferrer"
-              className="block rounded-lg border border-border/60 px-3 py-2 text-sm text-primary hover:bg-muted/40"
+              className="flex items-center justify-between gap-2 rounded-lg border border-border/60 px-3 py-2"
             >
-              {f.name}
-            </a>
+              <a href={f.url} target="_blank" rel="noreferrer" className="truncate text-sm text-primary hover:underline">
+                {f.name}
+              </a>
+              {f.status === "APPROVED" ? (
+                <Badge variant="outline" className="border-emerald-500/25 bg-emerald-500/10 text-emerald-400">
+                  <Check className="size-3" /> Approved
+                </Badge>
+              ) : (
+                <Button size="xs" disabled={pending} onClick={() => handleApprove(f.id)}>
+                  Approve
+                </Button>
+              )}
+            </div>
           ))}
+        </CardContent>
+      </Card>
+
+      <Card className="mb-4" ref={mediaRef}>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between text-sm">
+            <span className="flex items-center gap-2">
+              <ImageIcon className="size-4 text-primary" />
+              Project Media &amp; Attached Screenshots / Videos
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {media.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              No custom screenshots or video clips uploaded yet. Use the Upload Media button above to add assets.
+            </p>
+          )}
+          {media.length > 0 && (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {media.map((f) =>
+                IMAGE_EXT.test(f.url) ? (
+                  <a key={f.id} href={f.url} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg border border-border/60">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={f.url} alt={f.name} className="aspect-video w-full object-cover" />
+                  </a>
+                ) : (
+                  <a
+                    key={f.id}
+                    href={f.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex aspect-video flex-col items-center justify-center gap-1 rounded-lg border border-border/60 bg-muted/30 p-2 text-center text-xs text-primary hover:bg-muted/50"
+                  >
+                    <FileText className="size-4" />
+                    <span className="line-clamp-2">{f.name}</span>
+                  </a>
+                )
+              )}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2 border-t border-border/60 pt-3 sm:flex-row">
+            <Input
+              placeholder="Your name"
+              value={uploaderName}
+              onChange={(e) => setUploaderName(e.target.value)}
+              className="sm:max-w-[180px]"
+            />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,video/*"
+              className="hidden"
+              onChange={(e) => handleFileSelected(e.target.files?.[0])}
+            />
+            <Button size="sm" variant="outline" disabled={pending} onClick={handleUploadClick}>
+              <Upload className="size-3.5" />
+              Upload File
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="mb-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Clock className="size-4 text-primary" />
+            Project Milestones &amp; Key Deadlines
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {project.milestones.length === 0 && (
+            <p className="text-sm text-muted-foreground">No milestones set yet.</p>
+          )}
+          {project.milestones.map((m) => {
+            const status = milestoneStatus(m);
+            const StatusIcon = status.icon;
+            return (
+              <div
+                key={m.id}
+                className="flex items-center justify-between gap-2 rounded-lg border border-border/60 px-3 py-2"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm">{m.title}</p>
+                  {m.dueAt && (
+                    <p className="text-[11px] text-muted-foreground">
+                      Due {new Date(m.dueAt).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+                <Badge variant="outline" className={cn("shrink-0", status.className)}>
+                  <StatusIcon className="size-3" />
+                  {status.label}
+                </Badge>
+              </div>
+            );
+          })}
         </CardContent>
       </Card>
 
@@ -151,7 +396,7 @@ export function PortalView({ project }: { project: PortalProject }) {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card ref={changeRef}>
         <CardHeader>
           <CardTitle className="text-sm">Request a change</CardTitle>
         </CardHeader>

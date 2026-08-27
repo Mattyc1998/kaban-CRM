@@ -160,6 +160,7 @@ model Project {
   files           ProjectFile[]
   comments        ProjectComment[]
   changeRequests  ProjectChangeRequest[]
+  milestones      ProjectMilestone[]
 }
 
 enum TaskPriority {
@@ -181,13 +182,40 @@ model ProjectTask {
   @@index([projectId])
 }
 
+enum ProjectFileKind {
+  DELIVERABLE
+  MEDIA
+}
+
+enum DeliverableStatus {
+  PENDING
+  APPROVED
+}
+
 model ProjectFile {
-  id        String   @id @default(cuid())
+  id         String            @id @default(cuid())
+  projectId  String
+  project    Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  kind       ProjectFileKind   @default(DELIVERABLE)
+  // Meaningful for DELIVERABLE files (client sign-off); ignored for MEDIA.
+  status     DeliverableStatus @default(PENDING)
+  url        String
+  name       String
+  // "admin" or the name the client typed on the portal upload form.
+  uploadedBy String            @default("admin")
+  createdAt  DateTime          @default(now())
+
+  @@index([projectId])
+}
+
+model ProjectMilestone {
+  id        String    @id @default(cuid())
   projectId String
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  url       String
-  name      String
-  createdAt DateTime @default(now())
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title     String
+  dueAt     DateTime?
+  completed Boolean   @default(false)
+  createdAt DateTime  @default(now())
 
   @@index([projectId])
 }

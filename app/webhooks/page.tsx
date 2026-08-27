@@ -50,6 +50,11 @@ export default async function WebhooksPage() {
   const integrations = [
     { name: "Kaban Copilot (xAI Grok)", envVar: "XAI_API_KEY", configured: !!process.env.XAI_API_KEY },
     { name: "AI research provider", envVar: "AI_RESEARCH_API_KEY", configured: !!process.env.AI_RESEARCH_API_KEY },
+    {
+      name: "Media storage (Vercel Blob)",
+      envVar: "BLOB_READ_WRITE_TOKEN",
+      configured: !!process.env.BLOB_READ_WRITE_TOKEN,
+    },
   ];
 
   const [telegramBotToken, telegramChatId, telegramWebhookEnabled] = await Promise.all([
@@ -131,7 +136,8 @@ export default async function WebhooksPage() {
               </div>
             ))}
             <p className="mt-1 text-[11px] text-muted-foreground">
-              Unconfigured integrations still run — they log what they would send instead of calling out.
+              Unconfigured AI integrations stub gracefully (log what they&rsquo;d send). Media storage is
+              the exception — file uploads need it to actually work, and show a clear error until it&rsquo;s set up.
             </p>
           </CardContent>
         </Card>

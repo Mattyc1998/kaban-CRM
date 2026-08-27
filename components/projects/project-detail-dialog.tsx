@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Prisma, TaskPriority } from "@prisma/client";
 import { toast } from "sonner";
-import { Copy, ExternalLink, Trash2 } from "lucide-react";
+import { Copy, ExternalLink, Trash2, Upload, Check } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -38,10 +38,15 @@ import {
   deleteTask,
   addComment,
   resolveChangeRequest,
+  addDeliverable,
+  uploadProjectFileAction,
+  addMilestone,
+  toggleMilestone,
+  deleteMilestone,
 } from "@/lib/actions/projects";
 
 type ProjectDetail = Prisma.ProjectGetPayload<{
-  include: { tasks: true; files: true; comments: true; changeRequests: true };
+  include: { tasks: true; files: true; comments: true; changeRequests: true; milestones: true };
 }>;
 
 const PRIORITY_BADGE: Record<TaskPriority, string> = {
@@ -65,7 +70,13 @@ export function ProjectDetailDialog({
   const [newTask, setNewTask] = useState("");
   const [newTaskPriority, setNewTaskPriority] = useState<TaskPriority>("MEDIUM");
   const [newComment, setNewComment] = useState("");
+  const [newMilestone, setNewMilestone] = useState("");
+  const [newMilestoneDue, setNewMilestoneDue] = useState("");
+  const [linkName, setLinkName] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
   const [pending, startTransition] = useTransition();
+  const deliverableFileRef = useRef<HTMLInputElement>(null);
+  const mediaFileRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   // Reset stale detail during render (React's recommended pattern) when the
@@ -143,14 +154,76 @@ export function ProjectDetailDialog({
     });
   }
 
+  function handleUploadFile(file: File | undefined, kind: "DELIVERABLE" | "MEDIA") {
+    if (!file) return;
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.set("projectId", project!.id);
+      formData.set("kind", kind);
+      formData.set("file", file);
+      try {
+        await uploadProjectFileAction(formData);
+        toast.success("Uploaded");
+        refresh();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Upload failed");
+      }
+    });
+  }
+
+  function handleAddLink() {
+    if (!linkName.trim() || !linkUrl.trim()) return;
+    startTransition(async () => {
+      try {
+        await addDeliverable({ projectId: project!.id, name: linkName, url: linkUrl });
+        setLinkName("");
+        setLinkUrl("");
+        refresh();
+      } catch {
+        toast.error("Enter a valid URL");
+      }
+    });
+  }
+
+  function handleAddMilestone() {
+    if (!newMilestone.trim()) return;
+    startTransition(async () => {
+      await addMilestone({
+        projectId: project!.id,
+        title: newMilestone,
+        dueAt: newMilestoneDue || undefined,
+      });
+      setNewMilestone("");
+      setNewMilestoneDue("");
+      refresh();
+    });
+  }
+
+  function handleToggleMilestone(milestoneId: string, completed: boolean) {
+    startTransition(async () => {
+      await toggleMilestone({ milestoneId, completed });
+      refresh();
+    });
+  }
+
+  function handleDeleteMilestone(milestoneId: string) {
+    startTransition(async () => {
+      await deleteMilestone({ milestoneId });
+      refresh();
+    });
+  }
+
   function copyLink() {
     navigator.clipboard.writeText(`${window.location.origin}${portalPath(project!.portalSlug)}`);
     toast.success("Portal link copied");
   }
 
+  const deliverables = detail?.files.filter((f) => f.kind === "DELIVERABLE") ?? [];
+  const media = detail?.files.filter((f) => f.kind === "MEDIA") ?? [];
+
   return (
     <Dialog open={!!project} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{project.name}</DialogTitle>
           <DialogDescription>
@@ -222,9 +295,11 @@ export function ProjectDetailDialog({
 
         {detail ? (
           <Tabs defaultValue="tasks">
-            <TabsList className="w-full">
+            <TabsList className="w-full flex-wrap">
               <TabsTrigger value="tasks">Tasks ({detail.tasks.length})</TabsTrigger>
-              <TabsTrigger value="deliverables">Deliverables ({detail.files.length})</TabsTrigger>
+              <TabsTrigger value="deliverables">Deliverables ({deliverables.length})</TabsTrigger>
+              <TabsTrigger value="media">Media ({media.length})</TabsTrigger>
+              <TabsTrigger value="milestones">Milestones ({detail.milestones.length})</TabsTrigger>
               <TabsTrigger value="changes">Change Requests ({detail.changeRequests.length})</TabsTrigger>
               <TabsTrigger value="comments">Comments ({detail.comments.length})</TabsTrigger>
             </TabsList>
@@ -286,23 +361,160 @@ export function ProjectDetailDialog({
               </div>
             </TabsContent>
 
-            <TabsContent value="deliverables" className="mt-3 space-y-1.5">
-              {detail.files.length === 0 && (
-                <p className="py-4 text-center text-sm text-muted-foreground">
-                  No deliverables uploaded yet.
-                </p>
-              )}
-              {detail.files.map((f) => (
-                <a
-                  key={f.id}
-                  href={f.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block rounded-lg border border-border/60 px-3 py-2 text-sm text-primary hover:bg-muted/40"
+            <TabsContent value="deliverables" className="mt-3 space-y-2">
+              <input
+                ref={deliverableFileRef}
+                type="file"
+                className="hidden"
+                onChange={(e) => handleUploadFile(e.target.files?.[0], "DELIVERABLE")}
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={pending}
+                  onClick={() => deliverableFileRef.current?.click()}
                 >
-                  {f.name}
-                </a>
-              ))}
+                  <Upload className="size-3.5" />
+                  Upload deliverable
+                </Button>
+                <span className="text-xs text-muted-foreground">or paste a link:</span>
+                <Input
+                  placeholder="Name"
+                  value={linkName}
+                  onChange={(e) => setLinkName(e.target.value)}
+                  className="h-8 w-32"
+                />
+                <Input
+                  placeholder="https://..."
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  className="h-8 flex-1"
+                />
+                <Button size="sm" variant="secondary" disabled={pending} onClick={handleAddLink}>
+                  Add
+                </Button>
+              </div>
+              <div className="space-y-1.5">
+                {deliverables.length === 0 && (
+                  <p className="py-4 text-center text-sm text-muted-foreground">
+                    No deliverables uploaded yet.
+                  </p>
+                )}
+                {deliverables.map((f) => (
+                  <div
+                    key={f.id}
+                    className="flex items-center justify-between gap-2 rounded-lg border border-border/60 px-3 py-2"
+                  >
+                    <a href={f.url} target="_blank" rel="noreferrer" className="truncate text-sm text-primary hover:underline">
+                      {f.name}
+                    </a>
+                    {f.status === "APPROVED" ? (
+                      <Badge variant="outline" className="shrink-0 border-emerald-500/20 bg-emerald-500/15 text-emerald-400">
+                        <Check className="size-3" /> Approved
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="shrink-0 border-amber-500/20 bg-amber-500/15 text-amber-400">
+                        Pending sign-off
+                      </Badge>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="media" className="mt-3 space-y-2">
+              <input
+                ref={mediaFileRef}
+                type="file"
+                accept="image/*,video/*"
+                className="hidden"
+                onChange={(e) => handleUploadFile(e.target.files?.[0], "MEDIA")}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={pending}
+                onClick={() => mediaFileRef.current?.click()}
+              >
+                <Upload className="size-3.5" />
+                Upload screenshot / video
+              </Button>
+              {media.length === 0 ? (
+                <p className="py-4 text-center text-sm text-muted-foreground">No media uploaded yet.</p>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  {media.map((f) => (
+                    <a
+                      key={f.id}
+                      href={f.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex aspect-video items-center justify-center overflow-hidden rounded-lg border border-border/60 bg-muted/30 text-xs text-primary"
+                    >
+                      {/\.(png|jpe?g|gif|webp|svg)$/i.test(f.url) ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={f.url} alt={f.name} className="size-full object-cover" />
+                      ) : (
+                        <span className="line-clamp-2 px-2 text-center">{f.name}</span>
+                      )}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="milestones" className="mt-3 space-y-3">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Milestone title..."
+                  value={newMilestone}
+                  onChange={(e) => setNewMilestone(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAddMilestone()}
+                />
+                <Input
+                  type="date"
+                  value={newMilestoneDue}
+                  onChange={(e) => setNewMilestoneDue(e.target.value)}
+                  className="w-40"
+                />
+                <Button onClick={handleAddMilestone} disabled={pending}>
+                  Add
+                </Button>
+              </div>
+              <div className="space-y-1.5">
+                {detail.milestones.length === 0 && (
+                  <p className="py-4 text-center text-sm text-muted-foreground">No milestones yet.</p>
+                )}
+                {detail.milestones.map((m) => (
+                  <div
+                    key={m.id}
+                    className="flex items-center gap-2.5 rounded-lg border border-border/60 px-3 py-2"
+                  >
+                    <Checkbox
+                      checked={m.completed}
+                      onCheckedChange={(v) => handleToggleMilestone(m.id, !!v)}
+                    />
+                    <div className="flex-1">
+                      <span className={`text-sm ${m.completed ? "text-muted-foreground line-through" : ""}`}>
+                        {m.title}
+                      </span>
+                      {m.dueAt && (
+                        <p className="text-[11px] text-muted-foreground">
+                          Due {new Date(m.dueAt).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => handleDeleteMilestone(m.id)}
+                    >
+                      <Trash2 className="size-3.5 text-muted-foreground" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </TabsContent>
 
             <TabsContent value="changes" className="mt-3 space-y-1.5">

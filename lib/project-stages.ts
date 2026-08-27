@@ -30,14 +30,14 @@ export const PROJECT_STAGES: {
   },
   {
     key: "REVIEW",
-    label: "Review",
+    label: "Client Review",
     accent: "border-t-violet-500",
     dot: "bg-violet-500",
     badgeClassName: "bg-violet-500/15 text-violet-400 border-violet-500/20",
   },
   {
     key: "CHANGES",
-    label: "Changes",
+    label: "Refinements",
     accent: "border-t-rose-500",
     dot: "bg-rose-500",
     badgeClassName: "bg-rose-500/15 text-rose-400 border-rose-500/20",

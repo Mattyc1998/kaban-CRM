@@ -14,6 +14,7 @@ export default async function PortalPage({
     include: {
       files: { orderBy: { createdAt: "desc" } },
       comments: { orderBy: { createdAt: "desc" } },
+      milestones: { orderBy: { dueAt: "asc" } },
     },
   });
 
