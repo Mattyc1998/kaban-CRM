@@ -60,7 +60,7 @@ export function ProjectCard({
           </Badge>
           {project.budget != null && (
             <span className="text-xs font-semibold text-foreground/80">
-              ${project.budget.toLocaleString()}
+              £{project.budget.toLocaleString()}
             </span>
           )}
         </div>

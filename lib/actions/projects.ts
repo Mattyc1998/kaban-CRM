@@ -68,7 +68,7 @@ export async function createProject(input: unknown) {
       author: "System",
       content: lead
         ? `Project automatically created from Won Lead "${lead.name}"${
-            lead.dealValue ? ` ($${lead.dealValue.toLocaleString()})` : ""
+            lead.dealValue ? ` (£${lead.dealValue.toLocaleString()})` : ""
           }. Portal link generated.`
         : `Project created. Portal link generated.`,
     },

@@ -41,7 +41,7 @@ export function ProjectsPageClient({
             variant="outline"
             className="h-8 gap-1.5 border-violet-500/25 bg-violet-500/10 px-3 text-sm text-violet-300"
           >
-            Active Budget: ${activeBudget.toLocaleString()}
+            Active Budget: £{activeBudget.toLocaleString()}
           </Badge>
           <NewProjectDialog />
           <Button variant="outline" size="icon" onClick={() => router.refresh()}>

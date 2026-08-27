@@ -78,7 +78,7 @@ export function NewProjectDialog() {
               <Input id="p-email" name="clientEmail" type="email" />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="p-budget">Budget ($)</Label>
+              <Label htmlFor="p-budget">Budget (£)</Label>
               <Input id="p-budget" name="budget" type="number" min={0} step={1} />
             </div>
           </div>

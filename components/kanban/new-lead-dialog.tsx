@@ -78,7 +78,7 @@ export function NewLeadDialog() {
               <Input id="phone" name="phone" />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="dealValue">Estimated deal value ($)</Label>
+              <Label htmlFor="dealValue">Estimated deal value (£)</Label>
               <Input id="dealValue" name="dealValue" type="number" min={0} step={1} />
             </div>
           </div>

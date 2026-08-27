@@ -4,7 +4,7 @@ import {
   Phone,
   CalendarCheck,
   Trophy,
-  DollarSign,
+  PoundSterling,
   FolderOpen,
   Clock,
   AlertTriangle,
@@ -74,7 +74,7 @@ export default async function DashboardPage() {
       <section className="mb-6">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            <DollarSign className="size-3.5 text-primary" />
+            <PoundSterling className="size-3.5 text-primary" />
             Sales &amp; Pipeline Metrics
           </h2>
           <Link
@@ -114,10 +114,10 @@ export default async function DashboardPage() {
             sublabel="Converted to active clients"
           />
           <StatCard
-            icon={DollarSign}
+            icon={PoundSterling}
             iconClassName="bg-violet-500/15 text-violet-400"
             label="Pipeline Value"
-            value={`$${value.toLocaleString()}`}
+            value={`£${value.toLocaleString()}`}
             sublabel="Total deal value in CRM"
           />
         </div>
