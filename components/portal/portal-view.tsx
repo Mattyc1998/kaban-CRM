@@ -20,6 +20,9 @@ import {
   Circle,
   Monitor,
   ExternalLink,
+  CalendarDays,
+  Info,
+  Download,
 } from "lucide-react";
 import { PROJECT_STAGES } from "@/lib/project-stages";
 import { PRIORITY_BADGE } from "@/lib/task-priority";
@@ -73,6 +76,14 @@ export function PortalView({ project }: { project: PortalProject }) {
   const clientDisplayName = project.clientName || project.clientCompany || "Client";
   const deliverables = project.files.filter((f) => f.kind === "DELIVERABLE");
   const media = project.files.filter((f) => f.kind === "MEDIA");
+  const nextMilestone = project.milestones
+    .filter((m) => !m.completed)
+    .sort((a, b) => {
+      if (!a.dueAt) return 1;
+      if (!b.dueAt) return -1;
+      return new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime();
+    })[0];
+  const doneTasks = project.tasks.filter((t) => t.done).length;
 
   function scrollTo(ref: React.RefObject<HTMLDivElement | null>) {
     ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -137,7 +148,7 @@ export function PortalView({ project }: { project: PortalProject }) {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
+    <div className="mx-auto max-w-6xl px-4 py-8">
       <div className="mb-5 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element -- static local SVG, no benefit from next/image optimization */}
@@ -211,7 +222,10 @@ export function PortalView({ project }: { project: PortalProject }) {
         </div>
       )}
 
-      <Card className="mb-4">
+      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="space-y-4 lg:col-span-2">
+
+      <Card>
         <CardContent className="pt-4">
           <div className="mb-2 flex items-center justify-between">
             <div>
@@ -266,7 +280,7 @@ export function PortalView({ project }: { project: PortalProject }) {
       </Card>
 
       {project.tasks.length > 0 && (
-        <Card className="mb-4">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm">
               <ListChecks className="size-4 text-primary" />
@@ -303,7 +317,7 @@ export function PortalView({ project }: { project: PortalProject }) {
         </Card>
       )}
 
-      <Card className="mb-4">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between text-sm">
             <span className="flex items-center gap-2">
@@ -324,8 +338,14 @@ export function PortalView({ project }: { project: PortalProject }) {
               key={f.id}
               className="flex items-center justify-between gap-2 rounded-lg border border-border/60 px-3 py-2"
             >
-              <a href={f.url} target="_blank" rel="noreferrer" className="truncate text-sm text-primary hover:underline">
-                {f.name}
+              <a
+                href={f.url}
+                target="_blank"
+                rel="noreferrer"
+                className="flex min-w-0 items-center gap-1.5 truncate text-sm text-primary hover:underline"
+              >
+                <Download className="size-3.5 shrink-0" />
+                <span className="truncate">{f.name}</span>
               </a>
               {f.status === "APPROVED" ? (
                 <Badge variant="outline" className="border-emerald-500/25 bg-emerald-500/10 text-emerald-400">
@@ -341,7 +361,7 @@ export function PortalView({ project }: { project: PortalProject }) {
         </CardContent>
       </Card>
 
-      <Card className="mb-4" ref={mediaRef}>
+      <Card ref={mediaRef}>
         <CardHeader>
           <CardTitle className="flex items-center justify-between text-sm">
             <span className="flex items-center gap-2">
@@ -402,7 +422,50 @@ export function PortalView({ project }: { project: PortalProject }) {
         </CardContent>
       </Card>
 
-      <Card className="mb-4">
+      </div>
+
+      <div className="space-y-4">
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Info className="size-4 text-primary" />
+            Project Snapshot
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Started</span>
+            <span className="font-medium">{new Date(project.createdAt).toLocaleDateString()}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Current phase</span>
+            <span className="font-medium">{stageMeta.label}</span>
+          </div>
+          {project.tasks.length > 0 && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Tasks complete</span>
+              <span className="font-medium">{doneTasks}/{project.tasks.length}</span>
+            </div>
+          )}
+          <div className="flex items-center justify-between gap-2 text-sm">
+            <span className="shrink-0 text-muted-foreground">Next milestone</span>
+            <span className="truncate font-medium">
+              {nextMilestone
+                ? `${nextMilestone.title}${nextMilestone.dueAt ? ` · ${new Date(nextMilestone.dueAt).toLocaleDateString()}` : ""}`
+                : "None scheduled"}
+            </span>
+          </div>
+          <div className="flex items-start gap-2 rounded-lg border border-border/60 bg-muted/20 p-2.5 text-xs text-muted-foreground">
+            <CalendarDays className="size-3.5 shrink-0 translate-y-0.5" />
+            <span>
+              Questions about timing or scope? Send a message below and your project team will follow up.
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-sm">
             <Clock className="size-4 text-primary" />
@@ -439,8 +502,7 @@ export function PortalView({ project }: { project: PortalProject }) {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card ref={changeRequestsRef}>
+      <Card ref={changeRequestsRef}>
           <CardHeader>
             <CardTitle className="flex items-center justify-between text-sm">
               <span className="flex items-center gap-2">
@@ -539,6 +601,8 @@ export function PortalView({ project }: { project: PortalProject }) {
             </div>
           </CardContent>
         </Card>
+
+      </div>
       </div>
     </div>
   );
