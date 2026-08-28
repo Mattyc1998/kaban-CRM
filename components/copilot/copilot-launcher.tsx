@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import type { CopilotMessage } from "@prisma/client";
-import { Bot, Send } from "lucide-react";
+import { toast } from "sonner";
+import { Bot, Send, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Sheet,
@@ -13,7 +14,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { getCopilotHistory, sendCopilotMessage } from "@/lib/actions/copilot";
+import { getCopilotHistory, sendCopilotMessage, resetCopilotConversation } from "@/lib/actions/copilot";
 
 type LocalMessage = Pick<CopilotMessage, "role" | "content"> & { pending?: boolean };
 
@@ -22,6 +23,7 @@ export function CopilotLauncher() {
   const [messages, setMessages] = useState<LocalMessage[]>([]);
   const [input, setInput] = useState("");
   const [pending, startTransition] = useTransition();
+  const [resetting, startReset] = useTransition();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -45,6 +47,14 @@ export function CopilotLauncher() {
     });
   }
 
+  function handleNewChat() {
+    startReset(async () => {
+      await resetCopilotConversation();
+      setMessages([]);
+      toast.success("Started a new conversation");
+    });
+  }
+
   return (
     <>
       <Button
@@ -61,10 +71,22 @@ export function CopilotLauncher() {
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent className="flex w-full flex-col gap-0 sm:max-w-md">
           <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <Bot className="size-4 text-primary" />
-              ClearFlow Copilot
-            </SheetTitle>
+            <div className="flex items-center justify-between gap-2">
+              <SheetTitle className="flex items-center gap-2">
+                <Bot className="size-4 text-primary" />
+                ClearFlow Copilot
+              </SheetTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 gap-1.5 text-xs text-muted-foreground"
+                disabled={resetting || messages.length === 0}
+                onClick={handleNewChat}
+              >
+                <RotateCcw className="size-3.5" />
+                New Chat
+              </Button>
+            </div>
             <SheetDescription>
               Ask about leads, projects, or the pipeline — it can also add tasks, notes, and move
               things you name explicitly.

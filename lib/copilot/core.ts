@@ -1,6 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { callGrok, type ChatMessage } from "@/lib/integrations/xai";
 import { getToolSchemas, runTool } from "@/lib/copilot/tools";
+import { getSetting } from "@/lib/integrations/settings-store";
+
+// "New Chat" doesn't delete history (Telegram and web share one continuous
+// conversation) — it just moves this cursor forward so older messages are
+// no longer pulled into context. See lib/actions/copilot.ts#resetCopilotConversation.
+export const COPILOT_RESET_KEY = "copilot_reset_at";
 
 const SYSTEM_PROMPT = `You are ClearFlow Copilot, an assistant embedded in the CRM for ClearFlow AI — a lead pipeline and project tracking tool used by Matthew, ClearFlow AI's owner.
 Address Matthew directly and by name when it feels natural (e.g. a greeting), but don't force it into every reply.
@@ -19,7 +25,9 @@ export async function runCopilotTurn(
   channel: "WEB" | "TELEGRAM",
   userText: string
 ): Promise<string> {
+  const resetAt = await getSetting(COPILOT_RESET_KEY);
   const history = await prisma.copilotMessage.findMany({
+    where: resetAt ? { createdAt: { gt: new Date(resetAt) } } : undefined,
     orderBy: { createdAt: "desc" },
     take: HISTORY_LIMIT,
   });

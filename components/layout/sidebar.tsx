@@ -3,7 +3,7 @@ import {
   LayoutDashboard,
   KanbanSquare,
   FolderKanban,
-  ScanEye,
+  Users,
   Webhook,
   LogOut,
 } from "lucide-react";
@@ -16,7 +16,7 @@ const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/leads", label: "Lead Pipeline", icon: KanbanSquare, badge: "8 Stages" },
   { href: "/projects", label: "Project Tracking", icon: FolderKanban },
-  { href: "/opencv", label: "OpenCV Gestures", icon: ScanEye, badge: "Vision" },
+  { href: "/contacts", label: "Contacts", icon: Users },
   { href: "/webhooks", label: "Webhooks & Settings", icon: Webhook },
 ] as const;
 
