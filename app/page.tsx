@@ -13,6 +13,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 import { AppShell } from "@/components/layout/app-shell";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { IngestionChannels } from "@/components/dashboard/ingestion-channels";
@@ -22,6 +23,9 @@ import { NewLeadDialog } from "@/components/kanban/new-lead-dialog";
 import { Badge } from "@/components/ui/badge";
 
 export default async function DashboardPage() {
+  const session = await auth();
+  const firstName = session?.user?.name?.split(" ")[0];
+
   const [
     stageCounts,
     sourceCounts,
@@ -58,11 +62,14 @@ export default async function DashboardPage() {
         <div>
           <Badge variant="outline" className="mb-2 gap-1.5 border-primary/25 bg-primary/10 text-primary">
             <Sparkles className="size-3" />
-            Automated AI CRM &amp; Project Pipeline
+            ClearFlow AI &middot; Automated CRM &amp; Project Pipeline
           </Badge>
-          <h1 className="text-2xl font-bold tracking-tight">Executive Dashboard</h1>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {firstName ? `Welcome back, ${firstName}` : "Executive Dashboard"}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Real-time telemetry across multi-source lead ingestion, automated AI research, and client delivery.
+            {firstName ? "Executive Dashboard — r" : "R"}eal-time telemetry across multi-source lead ingestion,
+            automated AI research, and client delivery for ClearFlow AI.
           </p>
         </div>
         <div className="flex items-center gap-2">

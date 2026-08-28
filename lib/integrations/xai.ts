@@ -25,7 +25,7 @@ export type ToolSchema = {
 
 export class XaiNotConfiguredError extends Error {
   constructor() {
-    super("XAI_API_KEY is not set — the Kaban Copilot isn't configured yet.");
+    super("XAI_API_KEY is not set — the ClearFlow Copilot isn't configured yet.");
     this.name = "XaiNotConfiguredError";
   }
 }

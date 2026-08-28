@@ -26,18 +26,17 @@ export async function Sidebar({ active }: { active: string }) {
   return (
     <aside className="flex h-full w-60 shrink-0 flex-col bg-sidebar text-sidebar-foreground">
       <div className="flex items-center gap-2.5 px-5 py-5">
-        <div className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-violet-500 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/30">
-          K
-        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element -- static local SVG, no benefit from next/image optimization */}
+        <img src="/clearflow-mark.svg" alt="ClearFlow AI" className="size-8" />
         <div className="leading-tight">
           <div className="flex items-center gap-1.5">
-            <span className="text-sm font-bold tracking-tight">KABAN</span>
-            <Badge className="h-4 bg-primary/20 px-1.5 text-[9px] font-semibold text-primary-foreground/90">
-              CRM
+            <span className="text-sm font-bold tracking-tight">CLEARFLOW</span>
+            <Badge className="h-4 bg-primary/20 px-1.5 text-[9px] font-semibold text-primary">
+              AI
             </Badge>
           </div>
           <p className="text-[10px] uppercase tracking-wider text-sidebar-foreground/45">
-            AI Pipeline &amp; Projects
+            CRM &middot; Pipeline &amp; Projects
           </p>
         </div>
       </div>
@@ -81,10 +80,10 @@ export async function Sidebar({ active }: { active: string }) {
           className="flex items-center gap-2.5 rounded-lg px-3 py-2"
         >
           <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-[11px] font-semibold text-sidebar-foreground/80">
-            {session?.user?.email?.[0]?.toUpperCase() ?? "?"}
+            {(session?.user?.name || session?.user?.email)?.[0]?.toUpperCase() ?? "?"}
           </div>
           <span className="flex-1 truncate text-xs text-sidebar-foreground/60">
-            {session?.user?.email}
+            {session?.user?.name || session?.user?.email}
           </span>
           <Button
             type="submit"

@@ -48,7 +48,7 @@ export default async function WebhooksPage() {
   ];
 
   const integrations = [
-    { name: "Kaban Copilot (xAI Grok)", envVar: "XAI_API_KEY", configured: !!process.env.XAI_API_KEY },
+    { name: "ClearFlow Copilot (xAI Grok)", envVar: "XAI_API_KEY", configured: !!process.env.XAI_API_KEY },
     { name: "AI research provider", envVar: "AI_RESEARCH_API_KEY", configured: !!process.env.AI_RESEARCH_API_KEY },
     {
       name: "Media storage (Vercel Blob)",

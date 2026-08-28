@@ -23,7 +23,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const project = await getProject(slug);
-  if (!project) return { title: "Kaban CRM Client Portal" };
+  if (!project) return { title: "ClearFlow AI Client Portal" };
   return { title: `${project.clientCompany || project.clientName || project.name} — Client Portal` };
 }
 

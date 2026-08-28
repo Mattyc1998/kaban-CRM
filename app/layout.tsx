@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Kaban CRM",
-  description: "Lead pipeline, project tracking and customer portal.",
+  title: "ClearFlow AI",
+  description: "ClearFlow AI's lead pipeline, project tracking and customer portal.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -52,7 +52,7 @@ function milestoneStatus(m: { completed: boolean; dueAt: Date | null }) {
 
 function messageSender(author: string) {
   if (author === "System") return { label: "System (Team Lead)", className: "text-emerald-400" };
-  if (author === "Kaban Copilot") return { label: "Kaban Copilot", className: "text-primary" };
+  if (author === "ClearFlow Copilot") return { label: "ClearFlow Copilot", className: "text-primary" };
   return { label: author, className: "text-foreground" };
 }
 
@@ -140,18 +140,17 @@ export function PortalView({ project }: { project: PortalProject }) {
     <div className="mx-auto max-w-3xl px-4 py-8">
       <div className="mb-5 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <div className="flex size-7 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-violet-500 text-xs font-bold text-primary-foreground">
-            K
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element -- static local SVG, no benefit from next/image optimization */}
+          <img src="/clearflow-mark.svg" alt="ClearFlow AI" className="size-7" />
           <span className="text-sm font-semibold tracking-tight text-muted-foreground">
-            Kaban CRM Client Portal
+            ClearFlow AI Client Portal
           </span>
         </div>
       </div>
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-card p-4">
         <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-violet-500 text-sm font-bold text-primary-foreground">
+          <div className="flex size-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-orange-400 text-sm font-bold text-primary-foreground">
             {(project.clientCompany || project.clientName || project.name)[0]?.toUpperCase()}
           </div>
           <div>

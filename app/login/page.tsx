@@ -22,16 +22,15 @@ export default function LoginPage() {
         className="pointer-events-none absolute inset-0 opacity-70"
         style={{
           background:
-            "radial-gradient(60rem 30rem at 20% -10%, color-mix(in oklch, var(--sidebar-primary) 35%, transparent), transparent), radial-gradient(50rem 25rem at 100% 100%, color-mix(in oklch, var(--sidebar-primary) 20%, transparent), transparent)",
+            "radial-gradient(60rem 30rem at 20% -10%, color-mix(in oklch, oklch(0.45 0.1 250) 45%, transparent), transparent), radial-gradient(50rem 25rem at 100% 100%, color-mix(in oklch, oklch(0.45 0.1 250) 30%, transparent), transparent), radial-gradient(30rem 16rem at 85% 10%, color-mix(in oklch, var(--sidebar-primary) 12%, transparent), transparent)",
         }}
       />
 
       <div className="relative flex w-full max-w-sm flex-col items-center gap-6">
         <div className="flex items-center gap-2.5 text-sidebar-foreground">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-sidebar-primary text-base font-bold text-sidebar-primary-foreground shadow-lg shadow-black/20">
-            K
-          </div>
-          <span className="text-lg font-semibold tracking-tight">Kaban CRM</span>
+          {/* eslint-disable-next-line @next/next/no-img-element -- static local SVG, no benefit from next/image optimization */}
+          <img src="/clearflow-mark.svg" alt="ClearFlow AI" className="size-9" />
+          <span className="text-lg font-semibold tracking-tight">ClearFlow AI</span>
         </div>
 
         <Card className="w-full border-white/10 bg-card/95 shadow-2xl backdrop-blur">

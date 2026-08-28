@@ -226,7 +226,7 @@ const tools: ToolDef[] = [
         data: {
           leadId: result.lead.id,
           type: "STAGE_CHANGE",
-          content: `Moved from ${result.lead.stage} to ${stage} by Kaban Copilot`,
+          content: `Moved from ${result.lead.stage} to ${stage} by ClearFlow Copilot`,
         },
       });
       return { ok: true, leadId: result.lead.id, newStage: stage };
@@ -320,7 +320,7 @@ const tools: ToolDef[] = [
       type: "function",
       function: {
         name: "add_project_comment",
-        description: "Log a comment on a specific, named project (posted as 'Kaban Copilot').",
+        description: "Log a comment on a specific, named project (posted as 'ClearFlow Copilot').",
         parameters: {
           type: "object",
           properties: {
@@ -335,7 +335,7 @@ const tools: ToolDef[] = [
       const result = await resolveProject(args.query as string);
       if ("error" in result) return result;
       await prisma.projectComment.create({
-        data: { projectId: result.project.id, author: "Kaban Copilot", content: args.content as string },
+        data: { projectId: result.project.id, author: "ClearFlow Copilot", content: args.content as string },
       });
       return { ok: true, projectId: result.project.id };
     },

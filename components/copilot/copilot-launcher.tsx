@@ -55,7 +55,7 @@ export function CopilotLauncher() {
         )}
       >
         <Bot className="size-4" />
-        Kaban Copilot
+        ClearFlow Copilot
       </Button>
 
       <Sheet open={open} onOpenChange={setOpen}>
@@ -63,7 +63,7 @@ export function CopilotLauncher() {
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
               <Bot className="size-4 text-primary" />
-              Kaban Copilot
+              ClearFlow Copilot
             </SheetTitle>
             <SheetDescription>
               Ask about leads, projects, or the pipeline — it can also add tasks, notes, and move
@@ -107,7 +107,7 @@ export function CopilotLauncher() {
                   handleSend();
                 }
               }}
-              placeholder="Message Kaban Copilot..."
+              placeholder="Message ClearFlow Copilot..."
               rows={2}
               className="resize-none"
             />

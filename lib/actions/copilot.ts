@@ -28,7 +28,7 @@ export async function sendCopilotMessage(content: string): Promise<{ reply: stri
     if (err instanceof XaiNotConfiguredError) {
       return {
         reply:
-          "Kaban Copilot isn't configured yet — add XAI_API_KEY to your .env and restart the dev server.",
+          "ClearFlow Copilot isn't configured yet — add XAI_API_KEY to your .env and restart the dev server.",
       };
     }
     throw err;
