@@ -76,6 +76,9 @@ model Lead {
   email  String?
   phone  String?
 
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id])
+
   stage    LeadStage  @default(INTERESTED)
   source   LeadSource @default(MANUAL)
   // Fractional index within a column (Trello-style) so reordering never
@@ -101,6 +104,7 @@ model Lead {
 
   @@index([stage, position])
   @@index([source, externalId])
+  @@index([contactId])
 }
 
 enum LeadActivityType {
@@ -184,6 +188,7 @@ model Contact {
   updatedAt DateTime @updatedAt
 
   projects  Project[]
+  leads     Lead[]
 
   @@index([email])
   @@index([company])

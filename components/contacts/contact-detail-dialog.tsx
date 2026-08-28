@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { Contact, Project } from "@prisma/client";
+import type { Contact, Project, Lead } from "@prisma/client";
 import { toast } from "sonner";
 import { ExternalLink, Link2, Unlink } from "lucide-react";
 import {
@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PROJECT_STAGES } from "@/lib/project-stages";
+import { KANBAN_STAGES } from "@/lib/kanban-stages";
 import {
   getContactDetail,
   updateContact,
@@ -35,6 +36,7 @@ import {
 
 export type ContactWithProjects = Contact & {
   projects: Pick<Project, "id" | "name" | "stage" | "budget" | "portalSlug">[];
+  leads: Pick<Lead, "id" | "name" | "stage">[];
 };
 
 type UnlinkedProject = { id: string; name: string; clientName: string | null; clientCompany: string | null };
@@ -80,6 +82,7 @@ export function ContactDetailDialog({
   if (!contact) return null;
 
   const projects = detail?.projects ?? contact.projects;
+  const leads = detail?.leads ?? contact.leads;
 
   function refresh() {
     if (!contact) return;
@@ -126,7 +129,8 @@ export function ContactDetailDialog({
         <DialogHeader>
           <DialogTitle>{detail?.name ?? contact.name}</DialogTitle>
           <DialogDescription>
-            {projects.length} linked project{projects.length === 1 ? "" : "s"} &middot; £
+            {projects.length} linked project{projects.length === 1 ? "" : "s"}
+            {leads.length > 0 && ` · ${leads.length} lead${leads.length === 1 ? "" : "s"} in pipeline`} &middot; £
             {totalSpent.toLocaleString()} total spent
           </DialogDescription>
         </DialogHeader>
@@ -229,6 +233,28 @@ export function ContactDetailDialog({
             </div>
           )}
         </div>
+
+        {leads.length > 0 && (
+          <div className="mt-2 border-t border-border/60 pt-4">
+            <p className="mb-2 text-sm font-medium">Leads in Pipeline</p>
+            <div className="space-y-1.5">
+              {leads.map((l) => {
+                const stageMeta = KANBAN_STAGES.find((s) => s.key === l.stage)!;
+                return (
+                  <div
+                    key={l.id}
+                    className="flex items-center justify-between gap-2 rounded-lg border border-border/60 px-3 py-2"
+                  >
+                    <p className="truncate text-sm">{l.name}</p>
+                    <Badge variant="outline" className="shrink-0">
+                      {stageMeta.label}
+                    </Badge>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

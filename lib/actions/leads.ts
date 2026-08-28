@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { runLeadResearch } from "@/lib/integrations/ai-research";
+import { findOrCreateContact } from "@/lib/contacts-linking";
 import {
   createLeadSchema,
   updateLeadSchema,
@@ -26,6 +27,13 @@ export async function createLead(input: unknown) {
     orderBy: { position: "desc" },
   });
 
+  const contactId = await findOrCreateContact({
+    name: data.name,
+    email: data.email,
+    company: data.company,
+    phone: data.phone,
+  });
+
   await prisma.lead.create({
     data: {
       name: data.name,
@@ -33,6 +41,7 @@ export async function createLead(input: unknown) {
       email: data.email || null,
       phone: data.phone || null,
       dealValue: data.dealValue,
+      contactId,
       stage: "INTERESTED",
       source: "MANUAL",
       position: (last?.position ?? -1) + 1,

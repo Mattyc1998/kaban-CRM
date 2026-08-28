@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { findOrCreateContact } from "@/lib/contacts-linking";
 import { createContactSchema, updateContactSchema, linkProjectSchema, unlinkProjectSchema } from "@/lib/validation/contact";
 
 async function requireSession() {
@@ -24,6 +25,10 @@ export async function listContacts() {
         select: { id: true, name: true, stage: true, budget: true, portalSlug: true },
         orderBy: { createdAt: "desc" },
       },
+      leads: {
+        select: { id: true, name: true, stage: true },
+        orderBy: { createdAt: "desc" },
+      },
     },
   });
 }
@@ -37,8 +42,57 @@ export async function getContactDetail(id: string) {
         select: { id: true, name: true, stage: true, budget: true, portalSlug: true },
         orderBy: { createdAt: "desc" },
       },
+      leads: {
+        select: { id: true, name: true, stage: true },
+        orderBy: { createdAt: "desc" },
+      },
     },
   });
+}
+
+// One-off sync for data that predates the Contact model (or was created
+// before auto-linking existed): links any Lead/Project with client info
+// but no contactId yet. Safe to run repeatedly — dedupes the same way
+// createLead/createProject do.
+export async function syncExistingContacts() {
+  await requireSession();
+
+  const [leads, projects] = await Promise.all([
+    prisma.lead.findMany({ where: { contactId: null } }),
+    prisma.project.findMany({ where: { contactId: null } }),
+  ]);
+
+  let linked = 0;
+
+  for (const lead of leads) {
+    if (!lead.name && !lead.email && !lead.company) continue;
+    const contactId = await findOrCreateContact({
+      name: lead.name,
+      email: lead.email,
+      company: lead.company,
+      phone: lead.phone,
+    });
+    if (contactId) {
+      await prisma.lead.update({ where: { id: lead.id }, data: { contactId } });
+      linked++;
+    }
+  }
+
+  for (const project of projects) {
+    if (!project.clientName && !project.clientEmail && !project.clientCompany) continue;
+    const contactId = await findOrCreateContact({
+      name: project.clientName,
+      email: project.clientEmail,
+      company: project.clientCompany,
+    });
+    if (contactId) {
+      await prisma.project.update({ where: { id: project.id }, data: { contactId } });
+      linked++;
+    }
+  }
+
+  revalidateContacts();
+  return { linked };
 }
 
 export async function listUnlinkedProjects() {

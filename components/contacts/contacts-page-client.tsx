@@ -1,19 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { RefreshCw, Users } from "lucide-react";
+import { toast } from "sonner";
+import { RefreshCw, Users, RotateCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NewContactDialog } from "@/components/contacts/new-contact-dialog";
 import { ContactCard } from "@/components/contacts/contact-card";
 import { ContactDetailDialog, type ContactWithProjects } from "@/components/contacts/contact-detail-dialog";
+import { syncExistingContacts } from "@/lib/actions/contacts";
 
 export function ContactsPageClient({ initialContacts }: { initialContacts: ContactWithProjects[] }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selected, setSelected] = useState<ContactWithProjects | null>(null);
+  const [syncing, startSync] = useTransition();
   const router = useRouter();
+
+  function handleSync() {
+    startSync(async () => {
+      const { linked } = await syncExistingContacts();
+      toast.success(linked > 0 ? `Linked ${linked} existing lead${linked === 1 ? "" : "s"}/project${linked === 1 ? "" : "s"}` : "Everything is already synced");
+      router.refresh();
+    });
+  }
 
   const totalSpent = initialContacts.reduce(
     (sum, c) => sum + c.projects.reduce((s, p) => s + (p.budget ?? 0), 0),
@@ -46,6 +57,10 @@ export function ContactsPageClient({ initialContacts }: { initialContacts: Conta
           <Badge variant="outline" className="h-8 gap-1.5 border-emerald-500/25 bg-emerald-500/10 px-3 text-sm text-emerald-400">
             Total Spent: £{totalSpent.toLocaleString()}
           </Badge>
+          <Button variant="outline" size="sm" disabled={syncing} onClick={handleSync}>
+            <RotateCw className={syncing ? "size-3.5 animate-spin" : "size-3.5"} />
+            Sync Existing
+          </Button>
           <NewContactDialog />
           <Button variant="outline" size="icon" onClick={() => router.refresh()}>
             <RefreshCw className="size-4" />

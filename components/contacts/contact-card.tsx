@@ -1,6 +1,6 @@
 "use client";
 
-import { Mail, Phone, Building2, FolderKanban } from "lucide-react";
+import { Mail, Phone, Building2, FolderKanban, KanbanSquare } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { ContactWithProjects } from "@/components/contacts/contact-detail-dialog";
@@ -51,10 +51,18 @@ export function ContactCard({
         </div>
 
         <div className="mt-2.5 flex items-center justify-between border-t border-border/60 pt-2">
-          <Badge variant="outline" className="gap-1 text-[10px]">
-            <FolderKanban className="size-3" />
-            {contact.projects.length} Project{contact.projects.length === 1 ? "" : "s"}
-          </Badge>
+          <div className="flex flex-wrap items-center gap-1">
+            <Badge variant="outline" className="gap-1 text-[10px]">
+              <FolderKanban className="size-3" />
+              {contact.projects.length} Project{contact.projects.length === 1 ? "" : "s"}
+            </Badge>
+            {contact.leads.length > 0 && (
+              <Badge variant="outline" className="gap-1 text-[10px]">
+                <KanbanSquare className="size-3" />
+                {contact.leads.length} Lead{contact.leads.length === 1 ? "" : "s"}
+              </Badge>
+            )}
+          </div>
           <span className="text-xs font-semibold text-emerald-400">
             £{totalSpent.toLocaleString()}
           </span>
