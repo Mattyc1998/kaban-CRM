@@ -91,7 +91,7 @@ export default async function DashboardPage() {
             View Full Lead Kanban <ArrowRight className="size-3" />
           </Link>
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-4">
           <StatCard
             icon={MessageSquare}
             iconClassName="bg-amber-500/15 text-amber-400"
@@ -143,7 +143,7 @@ export default async function DashboardPage() {
             View Projects Board <ArrowRight className="size-3" />
           </Link>
         </div>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
           <StatCard
             icon={FolderOpen}
             iconClassName="bg-indigo-500/15 text-indigo-400"

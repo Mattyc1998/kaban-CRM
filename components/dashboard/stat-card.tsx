@@ -16,22 +16,22 @@ export function StatCard({
   sublabel: string;
 }) {
   return (
-    <Card className="gap-0 py-4">
-      <CardContent className="flex items-start justify-between px-4">
+    <Card className="gap-0 py-6">
+      <CardContent className="flex items-start justify-between px-5">
         <div className="min-w-0">
-          <p className="truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          <p className="truncate text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {label}
           </p>
-          <p className="mt-1.5 text-2xl font-bold tabular-nums">{value}</p>
-          <p className="mt-1 truncate text-xs text-muted-foreground">{sublabel}</p>
+          <p className="mt-2 text-3xl font-bold tabular-nums">{value}</p>
+          <p className="mt-1.5 truncate text-sm text-muted-foreground">{sublabel}</p>
         </div>
         <div
           className={cn(
-            "flex size-9 shrink-0 items-center justify-center rounded-lg",
+            "flex size-12 shrink-0 items-center justify-center rounded-xl",
             iconClassName
           )}
         >
-          <Icon className="size-4" />
+          <Icon className="size-5" />
         </div>
       </CardContent>
     </Card>
