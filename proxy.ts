@@ -9,11 +9,12 @@ const { auth } = NextAuth(authConfig);
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const isLoginPage = req.nextUrl.pathname.startsWith("/login");
-  // Public, gated only by knowing the unguessable portal slug — no Customer
-  // login exists yet (later phase).
+  // Public, gated only by knowing the unguessable portal/proposal slug — no
+  // Customer login exists yet (later phase).
   const isPortalPage = req.nextUrl.pathname.startsWith("/portal");
+  const isProposalPage = req.nextUrl.pathname.startsWith("/proposal");
 
-  if (!isLoggedIn && !isLoginPage && !isPortalPage) {
+  if (!isLoggedIn && !isLoginPage && !isPortalPage && !isProposalPage) {
     return NextResponse.redirect(new URL("/login", req.nextUrl.origin));
   }
 

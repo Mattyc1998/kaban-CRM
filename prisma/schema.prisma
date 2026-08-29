@@ -171,6 +171,7 @@ model Project {
   comments        ProjectComment[]
   changeRequests  ProjectChangeRequest[]
   milestones      ProjectMilestone[]
+  proposals       Proposal[]
 
   @@index([contactId])
 }
@@ -189,9 +190,54 @@ model Contact {
 
   projects  Project[]
   leads     Lead[]
+  proposals Proposal[]
 
   @@index([email])
   @@index([company])
+}
+
+// ---------- Proposals & e-signature ----------
+
+enum ProposalStatus {
+  DRAFT
+  SENT
+  SIGNED
+  DECLINED
+}
+
+model Proposal {
+  id        String    @id @default(cuid())
+  contactId String?
+  contact   Contact?  @relation(fields: [contactId], references: [id])
+  projectId String?
+  project   Project?  @relation(fields: [projectId], references: [id])
+
+  title         String
+  clientName    String?
+  clientCompany String?
+  clientEmail   String?
+  // Scope of work — plain text, rendered with line breaks preserved on the
+  // public page. Not rich text; this is a one-person shop, not a document
+  // editor product.
+  scope         String
+  price         Int?
+
+  status     ProposalStatus @default(DRAFT)
+  // Unguessable slug backing the public /proposal/[slug] page — same
+  // access-control model as Project.portalSlug.
+  publicSlug String         @unique
+
+  // Typed-name e-signature: legally sufficient for this use case and far
+  // simpler than a signature-pad/canvas, which this doesn't need.
+  signedName String?
+  signedAt   DateTime?
+  signedIp   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([contactId])
+  @@index([projectId])
 }
 
 enum TaskPriority {

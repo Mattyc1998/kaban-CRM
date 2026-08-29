@@ -18,6 +18,7 @@ export const createProjectSchema = z.object({
   clientEmail: z.string().email().optional().or(z.literal("")),
   budget: z.coerce.number().int().min(0).optional(),
   leadId: z.string().optional(),
+  templateKey: z.string().optional(),
 });
 
 export const moveProjectSchema = z.object({

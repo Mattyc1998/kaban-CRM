@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   LayoutDashboard,
   KanbanSquare,
+  FileSignature,
   FolderKanban,
   Users,
   Webhook,
@@ -15,6 +16,7 @@ import { auth, signOut } from "@/lib/auth";
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/leads", label: "Lead Pipeline", icon: KanbanSquare, badge: "8 Stages" },
+  { href: "/proposals", label: "Proposals", icon: FileSignature },
   { href: "/projects", label: "Project Tracking", icon: FolderKanban },
   { href: "/contacts", label: "Contacts", icon: Users },
   { href: "/webhooks", label: "Webhooks & Settings", icon: Webhook },

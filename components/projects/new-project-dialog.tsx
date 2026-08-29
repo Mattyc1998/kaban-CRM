@@ -16,10 +16,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { createProject } from "@/lib/actions/projects";
+import { PROJECT_TEMPLATES } from "@/lib/project-templates";
 
 export function NewProjectDialog() {
   const [open, setOpen] = useState(false);
+  const [templateKey, setTemplateKey] = useState<string>("");
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
@@ -32,9 +41,11 @@ export function NewProjectDialog() {
           clientCompany: formData.get("clientCompany"),
           clientEmail: formData.get("clientEmail"),
           budget: formData.get("budget") || undefined,
+          templateKey: templateKey || undefined,
         });
         toast.success("Project created");
         setOpen(false);
+        setTemplateKey("");
         router.refresh();
       } catch {
         toast.error("Failed to create project");
@@ -80,6 +91,21 @@ export function NewProjectDialog() {
             <div className="grid gap-2">
               <Label htmlFor="p-budget">Budget (£)</Label>
               <Input id="p-budget" name="budget" type="number" min={0} step={1} />
+            </div>
+            <div className="grid gap-2">
+              <Label>Template</Label>
+              <Select value={templateKey} onValueChange={(v) => setTemplateKey(v ?? "")}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Blank project (no preset tasks)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PROJECT_TEMPLATES.map((t) => (
+                    <SelectItem key={t.key} value={t.key}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { generatePortalSlug } from "@/lib/integrations/portal";
 import { uploadProjectFile } from "@/lib/integrations/blob-storage";
 import { findOrCreateContact } from "@/lib/contacts-linking";
+import { applyProjectTemplate } from "@/lib/project-templates";
 import {
   createProjectSchema,
   moveProjectSchema,
@@ -84,6 +85,8 @@ export async function createProject(input: unknown) {
         : `Project created. Portal link generated.`,
     },
   });
+
+  await applyProjectTemplate(prisma, project.id, data.templateKey);
 
   revalidateProjects();
   return project;
