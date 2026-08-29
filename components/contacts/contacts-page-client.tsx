@@ -3,18 +3,17 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { RefreshCw, Users, RotateCw } from "lucide-react";
+import { RefreshCw, Building2, RotateCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { NewContactDialog } from "@/components/contacts/new-contact-dialog";
-import { ContactCard } from "@/components/contacts/contact-card";
-import { ContactDetailDialog, type ContactWithProjects } from "@/components/contacts/contact-detail-dialog";
+import { NewCompanyDialog } from "@/components/contacts/new-company-dialog";
+import { CompanyCard } from "@/components/contacts/company-card";
 import { syncExistingContacts } from "@/lib/actions/contacts";
+import type { CompanyWithRelations } from "@/lib/company-types";
 
-export function ContactsPageClient({ initialContacts }: { initialContacts: ContactWithProjects[] }) {
+export function ContactsPageClient({ initialCompanies }: { initialCompanies: CompanyWithRelations[] }) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selected, setSelected] = useState<ContactWithProjects | null>(null);
   const [syncing, startSync] = useTransition();
   const router = useRouter();
 
@@ -26,23 +25,22 @@ export function ContactsPageClient({ initialContacts }: { initialContacts: Conta
     });
   }
 
-  const totalSpent = initialContacts.reduce(
+  const totalSpent = initialCompanies.reduce(
     (sum, c) => sum + c.projects.reduce((s, p) => s + (p.budget ?? 0), 0),
     0
   );
-  const totalMrr = initialContacts.reduce(
+  const totalMrr = initialCompanies.reduce(
     (sum, c) =>
       sum + c.projects.filter((p) => p.retainerActive).reduce((s, p) => s + (p.retainerAmount ?? 0), 0),
     0
   );
 
-  const filtered = initialContacts.filter((c) => {
+  const filtered = initialCompanies.filter((c) => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return true;
     return (
       c.name.toLowerCase().includes(q) ||
-      c.company?.toLowerCase().includes(q) ||
-      c.email?.toLowerCase().includes(q)
+      c.contacts.some((p) => p.name.toLowerCase().includes(q) || p.email?.toLowerCase().includes(q))
     );
   });
 
@@ -53,10 +51,10 @@ export function ContactsPageClient({ initialContacts }: { initialContacts: Conta
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold tracking-tight">Contacts</h1>
             <Badge variant="outline" className="border-primary/25 bg-primary/10 text-primary">
-              {initialContacts.length} Contact{initialContacts.length === 1 ? "" : "s"}
+              {initialCompanies.length} Compan{initialCompanies.length === 1 ? "y" : "ies"}
             </Badge>
           </div>
-          <p className="text-sm text-muted-foreground">Clients and leads, with their projects and spend.</p>
+          <p className="text-sm text-muted-foreground">Companies, their people, projects, and spend.</p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="h-8 gap-1.5 border-emerald-500/25 bg-emerald-500/10 px-3 text-sm text-emerald-400">
@@ -71,7 +69,7 @@ export function ContactsPageClient({ initialContacts }: { initialContacts: Conta
             <RotateCw className={syncing ? "size-3.5 animate-spin" : "size-3.5"} />
             Sync Existing
           </Button>
-          <NewContactDialog />
+          <NewCompanyDialog />
           <Button variant="outline" size="icon" onClick={() => router.refresh()}>
             <RefreshCw className="size-4" />
           </Button>
@@ -79,7 +77,7 @@ export function ContactsPageClient({ initialContacts }: { initialContacts: Conta
       </div>
 
       <Input
-        placeholder="Search name, company, or email..."
+        placeholder="Search company, contact name, or email..."
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
         className="mb-4 max-w-sm"
@@ -87,20 +85,18 @@ export function ContactsPageClient({ initialContacts }: { initialContacts: Conta
 
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border/60 py-16 text-center text-muted-foreground">
-          <Users className="size-8" />
+          <Building2 className="size-8" />
           <p className="text-sm">
-            {initialContacts.length === 0 ? "No contacts yet — add one to get started." : "No contacts match your search."}
+            {initialCompanies.length === 0 ? "No companies yet — add one to get started." : "No companies match your search."}
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-3">
           {filtered.map((c) => (
-            <ContactCard key={c.id} contact={c} onClick={() => setSelected(c)} />
+            <CompanyCard key={c.id} company={c} />
           ))}
         </div>
       )}
-
-      <ContactDetailDialog contact={selected} onOpenChange={(open) => !open && setSelected(null)} />
     </div>
   );
 }

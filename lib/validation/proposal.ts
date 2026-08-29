@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const createProposalSchema = z.object({
   title: z.string().min(1, "Title is required").max(200),
-  contactId: z.string().optional(),
+  companyId: z.string().optional(),
   clientName: z.string().max(200).optional().or(z.literal("")),
   clientCompany: z.string().max(200).optional().or(z.literal("")),
   clientEmail: z.string().email().optional().or(z.literal("")),

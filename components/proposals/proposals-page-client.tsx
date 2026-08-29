@@ -7,19 +7,18 @@ import { RefreshCw, FileSignature } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { NewProposalDialog } from "@/components/proposals/new-proposal-dialog";
+import { NewProposalDialog, type CompanyOption } from "@/components/proposals/new-proposal-dialog";
 import { ProposalCard } from "@/components/proposals/proposal-card";
 import { ProposalDetailDialog, type ProposalSummary } from "@/components/proposals/proposal-detail-dialog";
 
-type ProposalWithContact = Proposal & { contact: { id: string; name: string; company: string | null } | null };
-type ContactOption = { id: string; name: string; company: string | null; email: string | null };
+type ProposalWithCompany = Proposal & { company: { id: string; name: string } | null };
 
 export function ProposalsPageClient({
   initialProposals,
-  contacts,
+  companies,
 }: {
-  initialProposals: ProposalWithContact[];
-  contacts: ContactOption[];
+  initialProposals: ProposalWithCompany[];
+  companies: CompanyOption[];
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selected, setSelected] = useState<ProposalSummary | null>(null);
@@ -55,7 +54,7 @@ export function ProposalsPageClient({
           <Badge variant="outline" className="h-8 gap-1.5 border-emerald-500/25 bg-emerald-500/10 px-3 text-sm text-emerald-400">
             {signedCount} Signed
           </Badge>
-          <NewProposalDialog contacts={contacts} />
+          <NewProposalDialog companies={companies} />
           <Button variant="outline" size="icon" onClick={() => router.refresh()}>
             <RefreshCw className="size-4" />
           </Button>

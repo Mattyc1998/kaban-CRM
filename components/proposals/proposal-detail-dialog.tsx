@@ -30,11 +30,11 @@ import { PROPOSAL_STATUS_BADGE } from "@/components/proposals/proposal-card";
 import { getProposalDetail, updateProposal, markProposalSent, convertProposalToProject } from "@/lib/actions/proposals";
 
 export type ProposalSummary = Proposal & {
-  contact: { id: string; name: string; company: string | null } | null;
+  company: { id: string; name: string } | null;
 };
 
 type ProposalDetail = Proposal & {
-  contact: { id: string; name: string; company: string | null } | null;
+  company: { id: string; name: string } | null;
   project: { id: string; name: string; portalSlug: string } | null;
 };
 
@@ -149,7 +149,7 @@ export function ProposalDetailDialog({
             </Badge>
           </div>
           <DialogDescription>
-            {current.contact ? `Linked to contact: ${current.contact.name}` : "Not linked to a contact"}
+            {current.company ? `Linked to company: ${current.company.name}` : "Not linked to a company"}
           </DialogDescription>
         </DialogHeader>
 

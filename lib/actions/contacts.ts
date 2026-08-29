@@ -3,10 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { findOrCreateContact } from "@/lib/contacts-linking";
+import { findOrCreateCompany } from "@/lib/contacts-linking";
 import {
-  createContactSchema,
-  updateContactSchema,
+  createCompanySchema,
+  updateCompanySchema,
+  createContactPersonSchema,
+  updateContactPersonSchema,
+  deleteContactPersonSchema,
   linkProjectSchema,
   unlinkProjectSchema,
   addEmailLogSchema,
@@ -33,83 +36,74 @@ const PROJECT_MONEY_SELECT = {
   retainerActive: true,
 } as const;
 
-export async function listContacts() {
+const COMPANY_INCLUDE = {
+  contacts: { orderBy: { createdAt: "asc" as const } },
+  projects: {
+    select: PROJECT_MONEY_SELECT,
+    orderBy: { createdAt: "desc" as const },
+  },
+  leads: {
+    select: { id: true, name: true, stage: true },
+    orderBy: { createdAt: "desc" as const },
+  },
+  emailLogs: {
+    orderBy: { contactedAt: "desc" as const },
+  },
+};
+
+export async function listCompanies() {
   await requireSession();
-  return prisma.contact.findMany({
+  return prisma.company.findMany({
     orderBy: { name: "asc" },
-    include: {
-      projects: {
-        select: PROJECT_MONEY_SELECT,
-        orderBy: { createdAt: "desc" },
-      },
-      leads: {
-        select: { id: true, name: true, stage: true },
-        orderBy: { createdAt: "desc" },
-      },
-      emailLogs: {
-        orderBy: { contactedAt: "desc" },
-      },
-    },
+    include: COMPANY_INCLUDE,
   });
 }
 
-export async function getContactDetail(id: string) {
+export async function getCompanyDetail(id: string) {
   await requireSession();
-  return prisma.contact.findUniqueOrThrow({
+  return prisma.company.findUniqueOrThrow({
     where: { id },
-    include: {
-      projects: {
-        select: PROJECT_MONEY_SELECT,
-        orderBy: { createdAt: "desc" },
-      },
-      leads: {
-        select: { id: true, name: true, stage: true },
-        orderBy: { createdAt: "desc" },
-      },
-      emailLogs: {
-        orderBy: { contactedAt: "desc" },
-      },
-    },
+    include: COMPANY_INCLUDE,
   });
 }
 
-// One-off sync for data that predates the Contact model (or was created
-// before auto-linking existed): links any Lead/Project with client info
-// but no contactId yet. Safe to run repeatedly — dedupes the same way
+// One-off sync for data that predates the Company/Contact model (or was
+// created before auto-linking existed): links any Lead/Project with client
+// info but no companyId yet. Safe to run repeatedly — dedupes the same way
 // createLead/createProject do.
 export async function syncExistingContacts() {
   await requireSession();
 
   const [leads, projects] = await Promise.all([
-    prisma.lead.findMany({ where: { contactId: null } }),
-    prisma.project.findMany({ where: { contactId: null } }),
+    prisma.lead.findMany({ where: { companyId: null } }),
+    prisma.project.findMany({ where: { companyId: null } }),
   ]);
 
   let linked = 0;
 
   for (const lead of leads) {
     if (!lead.name && !lead.email && !lead.company) continue;
-    const contactId = await findOrCreateContact({
+    const companyId = await findOrCreateCompany({
       name: lead.name,
       email: lead.email,
       company: lead.company,
       phone: lead.phone,
     });
-    if (contactId) {
-      await prisma.lead.update({ where: { id: lead.id }, data: { contactId } });
+    if (companyId) {
+      await prisma.lead.update({ where: { id: lead.id }, data: { companyId } });
       linked++;
     }
   }
 
   for (const project of projects) {
     if (!project.clientName && !project.clientEmail && !project.clientCompany) continue;
-    const contactId = await findOrCreateContact({
+    const companyId = await findOrCreateCompany({
       name: project.clientName,
       email: project.clientEmail,
       company: project.clientCompany,
     });
-    if (contactId) {
-      await prisma.project.update({ where: { id: project.id }, data: { contactId } });
+    if (companyId) {
+      await prisma.project.update({ where: { id: project.id }, data: { companyId } });
       linked++;
     }
   }
@@ -121,33 +115,56 @@ export async function syncExistingContacts() {
 export async function listUnlinkedProjects() {
   await requireSession();
   return prisma.project.findMany({
-    where: { contactId: null },
+    where: { companyId: null },
     select: { id: true, name: true, clientName: true, clientCompany: true },
     orderBy: { name: "asc" },
   });
 }
 
-export async function createContact(input: unknown) {
+export async function createCompany(input: unknown) {
   await requireSession();
-  const data = createContactSchema.parse(input);
+  const data = createCompanySchema.parse(input);
 
-  const contact = await prisma.contact.create({
+  const company = await prisma.company.create({
+    data: { name: data.name, notes: data.notes || null },
+  });
+
+  revalidateContacts();
+  return company;
+}
+
+export async function updateCompany(input: unknown) {
+  await requireSession();
+  const data = updateCompanySchema.parse(input);
+
+  await prisma.company.update({
+    where: { id: data.id },
+    data: { name: data.name, notes: data.notes || null },
+  });
+
+  revalidateContacts();
+}
+
+export async function addContactPerson(input: unknown) {
+  await requireSession();
+  const data = createContactPersonSchema.parse(input);
+
+  await prisma.contact.create({
     data: {
+      companyId: data.companyId,
       name: data.name,
       email: data.email || null,
       phone: data.phone || null,
-      company: data.company || null,
-      notes: data.notes || null,
+      role: data.role || null,
     },
   });
 
   revalidateContacts();
-  return contact;
 }
 
-export async function updateContact(input: unknown) {
+export async function updateContactPerson(input: unknown) {
   await requireSession();
-  const data = updateContactSchema.parse(input);
+  const data = updateContactPersonSchema.parse(input);
 
   await prisma.contact.update({
     where: { id: data.id },
@@ -155,10 +172,18 @@ export async function updateContact(input: unknown) {
       name: data.name,
       email: data.email || null,
       phone: data.phone || null,
-      company: data.company || null,
-      notes: data.notes || null,
+      role: data.role || null,
     },
   });
+
+  revalidateContacts();
+}
+
+export async function deleteContactPerson(input: unknown) {
+  await requireSession();
+  const data = deleteContactPersonSchema.parse(input);
+
+  await prisma.contact.delete({ where: { id: data.id } });
 
   revalidateContacts();
 }
@@ -169,7 +194,7 @@ export async function linkProjectToContact(input: unknown) {
 
   await prisma.project.update({
     where: { id: data.projectId },
-    data: { contactId: data.contactId },
+    data: { companyId: data.companyId },
   });
 
   revalidateContacts();
@@ -181,7 +206,7 @@ export async function unlinkProjectFromContact(input: unknown) {
 
   await prisma.project.update({
     where: { id: data.projectId },
-    data: { contactId: null },
+    data: { companyId: null },
   });
 
   revalidateContacts();
@@ -193,7 +218,7 @@ export async function addEmailLog(input: unknown) {
 
   await prisma.emailLog.create({
     data: {
-      contactId: data.contactId,
+      companyId: data.companyId,
       direction: data.direction,
       subject: data.subject,
       summary: data.summary,

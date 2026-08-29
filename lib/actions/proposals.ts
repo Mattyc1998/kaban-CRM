@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generatePortalSlug } from "@/lib/integrations/portal";
-import { findOrCreateContact } from "@/lib/contacts-linking";
+import { findOrCreateCompany } from "@/lib/contacts-linking";
 import { applyProjectTemplate } from "@/lib/project-templates";
 import {
   createProposalSchema,
@@ -27,7 +27,7 @@ export async function listProposals() {
   await requireSession();
   return prisma.proposal.findMany({
     orderBy: { createdAt: "desc" },
-    include: { contact: { select: { id: true, name: true, company: true } } },
+    include: { company: { select: { id: true, name: true } } },
   });
 }
 
@@ -36,7 +36,7 @@ export async function getProposalDetail(id: string) {
   return prisma.proposal.findUniqueOrThrow({
     where: { id },
     include: {
-      contact: { select: { id: true, name: true, company: true } },
+      company: { select: { id: true, name: true } },
       project: { select: { id: true, name: true, portalSlug: true } },
     },
   });
@@ -49,7 +49,7 @@ export async function createProposal(input: unknown) {
   const proposal = await prisma.proposal.create({
     data: {
       title: data.title,
-      contactId: data.contactId || null,
+      companyId: data.companyId || null,
       clientName: data.clientName || null,
       clientCompany: data.clientCompany || null,
       clientEmail: data.clientEmail || null,
@@ -76,7 +76,7 @@ export async function updateProposal(input: unknown) {
     where: { id: data.id },
     data: {
       title: data.title,
-      contactId: data.contactId || null,
+      companyId: data.companyId || null,
       clientName: data.clientName || null,
       clientCompany: data.clientCompany || null,
       clientEmail: data.clientEmail || null,
@@ -116,9 +116,9 @@ export async function convertProposalToProject(input: unknown) {
     orderBy: { position: "desc" },
   });
 
-  const contactId =
-    proposal.contactId ||
-    (await findOrCreateContact({
+  const companyId =
+    proposal.companyId ||
+    (await findOrCreateCompany({
       name: proposal.clientName,
       email: proposal.clientEmail,
       company: proposal.clientCompany,
@@ -131,7 +131,7 @@ export async function convertProposalToProject(input: unknown) {
       clientCompany: proposal.clientCompany,
       clientEmail: proposal.clientEmail,
       budget: proposal.price,
-      contactId,
+      companyId,
       portalSlug: generatePortalSlug(proposal.title),
       stage: "ONBOARDING",
       position: (last?.position ?? -1) + 1,

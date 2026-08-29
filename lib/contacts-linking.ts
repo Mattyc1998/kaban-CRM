@@ -1,39 +1,45 @@
 import { prisma } from "@/lib/prisma";
 
-// Shared by createProject (auto-link a new project's client to a Contact)
-// and the one-off backfill script for existing projects. Dedupes by email
-// when given, otherwise by name + company, and fills in any details a
-// match was missing.
-export async function findOrCreateContact(input: {
+// Shared by createProject/createLead (auto-link a new record's client to a
+// Company + a Contact person under it) and the one-off backfill script for
+// existing data. Dedupes the Company by name, and the Contact person by
+// email within that company.
+export async function findOrCreateCompany(input: {
   name?: string | null;
   email?: string | null;
   company?: string | null;
   phone?: string | null;
 }): Promise<string | null> {
-  const name = input.name?.trim() || null;
+  const personName = input.name?.trim() || null;
   const email = input.email?.trim() || null;
-  const company = input.company?.trim() || null;
+  const companyName = input.company?.trim() || personName;
   const phone = input.phone?.trim() || null;
 
-  if (!name && !email && !company) return null;
+  if (!companyName) return null;
 
-  let contact = email
-    ? await prisma.contact.findFirst({ where: { email } })
-    : await prisma.contact.findFirst({ where: { name: name ?? undefined, company } });
-
-  if (contact) {
-    const updates: Record<string, string> = {};
-    if (!contact.company && company) updates.company = company;
-    if (!contact.email && email) updates.email = email;
-    if (!contact.phone && phone) updates.phone = phone;
-    if (Object.keys(updates).length > 0) {
-      contact = await prisma.contact.update({ where: { id: contact.id }, data: updates });
-    }
-    return contact.id;
+  let company = await prisma.company.findFirst({ where: { name: companyName } });
+  if (!company) {
+    company = await prisma.company.create({ data: { name: companyName } });
   }
 
-  contact = await prisma.contact.create({
-    data: { name: name || company || "Unnamed contact", email, company, phone },
-  });
-  return contact.id;
+  if (personName || email) {
+    const existingContact = email
+      ? await prisma.contact.findFirst({ where: { companyId: company.id, email } })
+      : await prisma.contact.findFirst({ where: { companyId: company.id, name: personName ?? undefined } });
+
+    if (existingContact) {
+      const updates: Record<string, string> = {};
+      if (!existingContact.email && email) updates.email = email;
+      if (!existingContact.phone && phone) updates.phone = phone;
+      if (Object.keys(updates).length > 0) {
+        await prisma.contact.update({ where: { id: existingContact.id }, data: updates });
+      }
+    } else {
+      await prisma.contact.create({
+        data: { companyId: company.id, name: personName || companyName, email, phone },
+      });
+    }
+  }
+
+  return company.id;
 }

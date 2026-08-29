@@ -16,7 +16,7 @@ export function ProposalCard({
   proposal,
   onClick,
 }: {
-  proposal: Proposal & { contact: { name: string; company: string | null } | null };
+  proposal: Proposal & { company: { name: string } | null };
   onClick?: () => void;
 }) {
   return (
@@ -37,12 +37,9 @@ export function ProposalCard({
         </div>
 
         <p className="mt-2 truncate text-sm font-medium leading-tight">{proposal.title}</p>
-        {(proposal.clientCompany || proposal.clientName || proposal.contact) && (
+        {(proposal.clientCompany || proposal.clientName || proposal.company) && (
           <p className="truncate text-xs text-muted-foreground">
-            {proposal.clientCompany ||
-              proposal.contact?.company ||
-              proposal.clientName ||
-              proposal.contact?.name}
+            {proposal.clientCompany || proposal.company?.name || proposal.clientName}
           </p>
         )}
 

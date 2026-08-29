@@ -26,30 +26,34 @@ import {
 } from "@/components/ui/select";
 import { createProposal } from "@/lib/actions/proposals";
 
-type ContactOption = { id: string; name: string; company: string | null; email: string | null };
+export type CompanyOption = {
+  id: string;
+  name: string;
+  primaryContact: { name: string; email: string | null } | null;
+};
 
-export function NewProposalDialog({ contacts }: { contacts: ContactOption[] }) {
+export function NewProposalDialog({ companies }: { companies: CompanyOption[] }) {
   const [open, setOpen] = useState(false);
-  const [contactId, setContactId] = useState("");
+  const [companyId, setCompanyId] = useState("");
   const [clientName, setClientName] = useState("");
   const [clientCompany, setClientCompany] = useState("");
   const [clientEmail, setClientEmail] = useState("");
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
-  function handleContactChange(value: string | null) {
+  function handleCompanyChange(value: string | null) {
     const id = value ?? "";
-    setContactId(id);
-    const contact = contacts.find((c) => c.id === id);
-    if (contact) {
-      setClientName(contact.name);
-      setClientCompany(contact.company ?? "");
-      setClientEmail(contact.email ?? "");
+    setCompanyId(id);
+    const company = companies.find((c) => c.id === id);
+    if (company) {
+      setClientCompany(company.name);
+      setClientName(company.primaryContact?.name ?? "");
+      setClientEmail(company.primaryContact?.email ?? "");
     }
   }
 
   function reset() {
-    setContactId("");
+    setCompanyId("");
     setClientName("");
     setClientCompany("");
     setClientEmail("");
@@ -60,7 +64,7 @@ export function NewProposalDialog({ contacts }: { contacts: ContactOption[] }) {
       try {
         await createProposal({
           title: formData.get("title"),
-          contactId: contactId || undefined,
+          companyId: companyId || undefined,
           clientName,
           clientCompany,
           clientEmail,
@@ -101,16 +105,16 @@ export function NewProposalDialog({ contacts }: { contacts: ContactOption[] }) {
               <Input id="pr-title" name="title" placeholder="e.g. Website Redesign — Composite Interiors" required />
             </div>
             <div className="grid gap-2">
-              <Label>Existing contact (optional)</Label>
-              <Select value={contactId} onValueChange={handleContactChange}>
+              <Label>Existing company (optional)</Label>
+              <Select value={companyId} onValueChange={handleCompanyChange}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="None — enter client details manually" />
                 </SelectTrigger>
                 <SelectContent>
-                  {contacts.map((c) => (
+                  {companies.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.name}
-                      {c.company && ` — ${c.company}`}
+                      {c.primaryContact && ` — ${c.primaryContact.name}`}
                     </SelectItem>
                   ))}
                 </SelectContent>

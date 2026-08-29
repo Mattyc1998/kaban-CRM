@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { generatePortalSlug } from "@/lib/integrations/portal";
 import { uploadProjectFile } from "@/lib/integrations/blob-storage";
-import { findOrCreateContact } from "@/lib/contacts-linking";
+import { findOrCreateCompany } from "@/lib/contacts-linking";
 import { applyProjectTemplate } from "@/lib/project-templates";
 import {
   createProjectSchema,
@@ -51,7 +51,7 @@ export async function createProject(input: unknown) {
 
   // Auto-link (or create) a Contact for this project's client so the
   // Contacts page stays in sync without a separate manual step.
-  const contactId = await findOrCreateContact({
+  const companyId = await findOrCreateCompany({
     name: data.clientName,
     email: data.clientEmail,
     company: data.clientCompany,
@@ -65,7 +65,7 @@ export async function createProject(input: unknown) {
       clientEmail: data.clientEmail || null,
       budget: data.budget,
       leadId: data.leadId || null,
-      contactId,
+      companyId,
       portalSlug: generatePortalSlug(data.name),
       stage: "ONBOARDING",
       position: (last?.position ?? -1) + 1,
