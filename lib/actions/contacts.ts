@@ -8,6 +8,7 @@ import { uploadEmailAttachment } from "@/lib/integrations/blob-storage";
 import {
   createCompanySchema,
   updateCompanySchema,
+  deleteCompanySchema,
   createContactPersonSchema,
   updateContactPersonSchema,
   deleteContactPersonSchema,
@@ -143,6 +144,19 @@ export async function updateCompany(input: unknown) {
     where: { id: data.id },
     data: { name: data.name, notes: data.notes || null },
   });
+
+  revalidateContacts();
+}
+
+// Contacts (people) and the email log cascade-delete with the company;
+// linked Projects/Leads/Proposals just get unlinked (companyId set to
+// null), not deleted — they're real business records, not owned by the
+// contact.
+export async function deleteCompany(input: unknown) {
+  await requireSession();
+  const data = deleteCompanySchema.parse(input);
+
+  await prisma.company.delete({ where: { id: data.id } });
 
   revalidateContacts();
 }

@@ -66,8 +66,14 @@ function groupAndSort(queuedLeads: CallQueueLead[]): { day: number; leads: Marke
 // ---- Client-side CSV parsing (no libraries) ----
 
 function parseCSV(text: string): Record<string, string>[] {
-  const lines = text.trim().split("\n").filter((l) => l.trim());
-  const headers = lines[0].split(",").map((h) => h.trim());
+  // Strip a UTF-8 BOM (char code 0xFEFF) — Excel's "CSV UTF-8" export (the
+  // common Windows path) prepends one, which otherwise corrupts the first
+  // header ("lead_name" becomes an unmatchable garbled key) and silently
+  // breaks every row.
+  const cleaned = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+  const lines = cleaned.trim().split(/\r?\n/).filter((l) => l.trim());
+  if (lines.length === 0) return [];
+  const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
   return lines.slice(1).map((line) => {
     const values = line.split(",").map((v) => v.trim());
     const obj: Record<string, string> = {};
@@ -160,16 +166,28 @@ export function CallQueuePageClient({ initialLeads }: { initialLeads: CallQueueL
 
   function handleImport() {
     startTransition(async () => {
+      const allRows = csvRows.map(toImportRow);
+      const rows = allRows.filter((r) => r.leadName && r.leadName.trim());
+      const skipped = allRows.length - rows.length;
+
+      if (rows.length === 0) {
+        toast.error('No valid rows found — check the CSV has a "lead_name" column with values');
+        return;
+      }
+
       try {
-        const rows = csvRows.map(toImportRow);
         const { imported } = await importCallQueueLeads(rows);
-        toast.success(`Imported ${imported} leads`);
+        toast.success(
+          skipped > 0
+            ? `Imported ${imported} leads (skipped ${skipped} with no lead name)`
+            : `Imported ${imported} leads`
+        );
         setCsvRows([]);
         setUploadOpen(false);
         if (fileRef.current) fileRef.current.value = "";
         router.refresh();
-      } catch {
-        toast.error("Import failed — check the CSV format");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Import failed — check the CSV format");
       }
     });
   }

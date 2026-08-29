@@ -41,6 +41,7 @@ import { KANBAN_STAGES } from "@/lib/kanban-stages";
 import type { CompanyWithRelations } from "@/lib/company-types";
 import {
   updateCompany,
+  deleteCompany,
   addContactPerson,
   updateContactPerson,
   deleteContactPerson,
@@ -119,6 +120,20 @@ export function CompanyDetailView({ company }: { company: CompanyWithRelations }
       toast.success("Company saved");
       setEditingCompany(false);
       refresh();
+    });
+  }
+
+  function handleDeleteCompany() {
+    if (
+      !confirm(
+        `Delete "${company.name}"? Its contacts and email log will be deleted too. Linked projects and leads will just be unlinked, not deleted.`
+      )
+    )
+      return;
+    startTransition(async () => {
+      await deleteCompany({ id: company.id });
+      toast.success("Company deleted");
+      router.push("/contacts");
     });
   }
 
@@ -266,10 +281,16 @@ export function CompanyDetailView({ company }: { company: CompanyWithRelations }
                 {monthlyRetainer > 0 && ` · £${monthlyRetainer.toLocaleString()}/mo retainer`}
               </p>
             </div>
-            <Button size="sm" variant="outline" onClick={() => setEditingCompany(true)}>
-              <Pencil className="size-3.5" />
-              Edit
-            </Button>
+            <div className="flex shrink-0 gap-2">
+              <Button size="sm" variant="outline" onClick={() => setEditingCompany(true)}>
+                <Pencil className="size-3.5" />
+                Edit
+              </Button>
+              <Button size="sm" variant="outline" className="text-rose-400 hover:text-rose-400" onClick={handleDeleteCompany} disabled={pending}>
+                <Trash2 className="size-3.5" />
+                Delete
+              </Button>
+            </div>
           </div>
         )}
       </div>

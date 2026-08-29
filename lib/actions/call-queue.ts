@@ -28,7 +28,15 @@ export async function listCallQueueLeads() {
 // normally refreshed (a fresh export replaces the old one, not merged).
 export async function importCallQueueLeads(input: unknown) {
   await requireSession();
-  const rows = importCallQueueSchema.parse(input);
+
+  const parsed = importCallQueueSchema.safeParse(input);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    const rowNum = typeof issue.path[0] === "number" ? issue.path[0] + 1 : "?";
+    const field = issue.path[1] ?? "row";
+    throw new Error(`CSV row ${rowNum}, "${String(field)}": ${issue.message}`);
+  }
+  const rows = parsed.data;
 
   await prisma.$transaction([
     prisma.callQueueLead.deleteMany({}),

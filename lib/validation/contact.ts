@@ -9,6 +9,10 @@ export const updateCompanySchema = createCompanySchema.extend({
   id: z.string().min(1),
 });
 
+export const deleteCompanySchema = z.object({
+  id: z.string().min(1),
+});
+
 export const createContactPersonSchema = z.object({
   companyId: z.string().min(1),
   name: z.string().min(1),

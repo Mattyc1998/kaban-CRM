@@ -49,13 +49,17 @@ export async function createProject(input: unknown) {
     ? await prisma.lead.findUnique({ where: { id: data.leadId } })
     : null;
 
-  // Auto-link (or create) a Contact for this project's client so the
-  // Contacts page stays in sync without a separate manual step.
-  const companyId = await findOrCreateCompany({
-    name: data.clientName,
-    email: data.clientEmail,
-    company: data.clientCompany,
-  });
+  // If this project is converting a lead that's already linked to a
+  // Company, reuse that exact company rather than re-deriving one from the
+  // freeform client fields typed into this form — avoids creating a
+  // duplicate when the company name gets typed slightly differently.
+  const companyId =
+    lead?.companyId ??
+    (await findOrCreateCompany({
+      name: data.clientName,
+      email: data.clientEmail,
+      company: data.clientCompany,
+    }));
 
   const project = await prisma.project.create({
     data: {

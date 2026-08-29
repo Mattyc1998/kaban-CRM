@@ -5,6 +5,8 @@ export const leadStages = [
   "RESEARCH",
   "READY_TO_CALL",
   "CALL_BOOKED",
+  "CALL_TAKEN_PLACE",
+  "DECISION_MAKER",
   "WON",
   "LOST",
 ] as const;
