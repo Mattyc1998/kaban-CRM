@@ -21,6 +21,7 @@ import {
   toggleMilestoneSchema,
   deleteMilestoneSchema,
   updatePreviewUrlSchema,
+  updateRetainerSchema,
   projectStages,
 } from "@/lib/validation/project";
 
@@ -132,6 +133,22 @@ export async function updatePreviewUrl(input: unknown) {
   });
 
   revalidateProjects();
+}
+
+export async function updateRetainer(input: unknown) {
+  await requireSession();
+  const data = updateRetainerSchema.parse(input);
+
+  await prisma.project.update({
+    where: { id: data.id },
+    data: {
+      retainerAmount: data.retainerAmount,
+      retainerActive: data.retainerActive,
+    },
+  });
+
+  revalidateProjects();
+  revalidatePath("/contacts");
 }
 
 export async function updateProgress(input: unknown) {

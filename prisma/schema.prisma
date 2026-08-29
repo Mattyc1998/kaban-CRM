@@ -163,6 +163,12 @@ model Project {
   // progress in real time (e.g. a Vercel preview deployment).
   previewUrl  String?
 
+  // Ongoing hosting/maintenance billing after the one-off project budget —
+  // separate from `budget` since they're different kinds of money (a
+  // one-off spend vs. a recurring rate) and shouldn't be summed together.
+  retainerAmount Int?
+  retainerActive Boolean @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -191,9 +197,34 @@ model Contact {
   projects  Project[]
   leads     Lead[]
   proposals Proposal[]
+  emailLogs EmailLog[]
 
   @@index([email])
   @@index([company])
+}
+
+// ---------- Email log ----------
+
+enum EmailDirection {
+  SENT
+  RECEIVED
+}
+
+// Manual log of email touchpoints that happen outside the portal (e.g. in
+// Outlook) — not a real inbox sync (that needs OAuth against Microsoft
+// Graph, a whole separate setup on the user's end), just a quick record so
+// a contact's full communication history lives in one place.
+model EmailLog {
+  id          String         @id @default(cuid())
+  contactId   String
+  contact     Contact        @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  direction   EmailDirection
+  subject     String
+  summary     String
+  contactedAt DateTime       @default(now())
+  createdAt   DateTime       @default(now())
+
+  @@index([contactId])
 }
 
 // ---------- Proposals & e-signature ----------

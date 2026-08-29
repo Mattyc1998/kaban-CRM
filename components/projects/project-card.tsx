@@ -71,6 +71,11 @@ export function ProjectCard({
             Client: {[project.clientCompany, project.clientName].filter(Boolean).join(" — ")}
           </p>
         )}
+        {project.retainerActive && project.retainerAmount != null && (
+          <Badge variant="outline" className="mt-1.5 border-emerald-500/25 bg-emerald-500/10 text-[10px] text-emerald-400">
+            £{project.retainerAmount.toLocaleString()}/mo retainer
+          </Badge>
+        )}
 
         <div className="mt-2.5 flex items-center gap-2">
           <Progress value={project.progress} className="h-1 flex-1" />

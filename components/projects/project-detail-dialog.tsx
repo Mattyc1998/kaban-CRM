@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Prisma, TaskPriority } from "@prisma/client";
 import { toast } from "sonner";
-import { Copy, ExternalLink, Trash2, Upload, Check, Link2 } from "lucide-react";
+import { Copy, ExternalLink, Trash2, Upload, Check, Link2, RefreshCw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -45,6 +45,7 @@ import {
   toggleMilestone,
   deleteMilestone,
   updatePreviewUrl,
+  updateRetainer,
 } from "@/lib/actions/projects";
 
 type ProjectDetail = Prisma.ProjectGetPayload<{
@@ -71,6 +72,8 @@ export function ProjectDetailDialog({
   const [linkName, setLinkName] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
   const [previewUrlInput, setPreviewUrlInput] = useState("");
+  const [retainerAmountInput, setRetainerAmountInput] = useState("");
+  const [retainerActiveInput, setRetainerActiveInput] = useState(false);
   const [pending, startTransition] = useTransition();
   const deliverableFileRef = useRef<HTMLInputElement>(null);
   const mediaFileRef = useRef<HTMLInputElement>(null);
@@ -83,6 +86,8 @@ export function ProjectDetailDialog({
     setPrevProjectId(project?.id ?? null);
     setDetail(null);
     setPreviewUrlInput(project?.previewUrl ?? "");
+    setRetainerAmountInput(project?.retainerAmount?.toString() ?? "");
+    setRetainerActiveInput(project?.retainerActive ?? false);
   }
 
   useEffect(() => {
@@ -115,6 +120,18 @@ export function ProjectDetailDialog({
       } catch {
         toast.error("Enter a valid URL");
       }
+    });
+  }
+
+  function handleSaveRetainer() {
+    startTransition(async () => {
+      await updateRetainer({
+        id: project!.id,
+        retainerAmount: retainerAmountInput || undefined,
+        retainerActive: retainerActiveInput,
+      });
+      toast.success("Retainer saved");
+      refresh();
     });
   }
 
@@ -282,6 +299,31 @@ export function ProjectDetailDialog({
               className="h-8 flex-1"
             />
             <Button size="sm" variant="secondary" disabled={pending} onClick={handleSavePreviewUrl}>
+              Save
+            </Button>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-border/60 p-3">
+          <p className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <RefreshCw className="size-3" />
+            Ongoing retainer (hosting / maintenance — separate from the one-off budget above)
+          </p>
+          <div className="flex items-center gap-2">
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Checkbox checked={retainerActiveInput} onCheckedChange={(v) => setRetainerActiveInput(!!v)} />
+              Active
+            </label>
+            <Input
+              placeholder="Amount per month (£)"
+              type="number"
+              min={0}
+              step={1}
+              value={retainerAmountInput}
+              onChange={(e) => setRetainerAmountInput(e.target.value)}
+              className="h-8 flex-1"
+            />
+            <Button size="sm" variant="secondary" disabled={pending} onClick={handleSaveRetainer}>
               Save
             </Button>
           </div>

@@ -13,6 +13,9 @@ export function ContactCard({
   onClick?: () => void;
 }) {
   const totalSpent = contact.projects.reduce((sum, p) => sum + (p.budget ?? 0), 0);
+  const monthlyRetainer = contact.projects
+    .filter((p) => p.retainerActive)
+    .reduce((sum, p) => sum + (p.retainerAmount ?? 0), 0);
 
   return (
     <Card
@@ -62,10 +65,19 @@ export function ContactCard({
                 {contact.leads.length} Lead{contact.leads.length === 1 ? "" : "s"}
               </Badge>
             )}
+            {contact.emailLogs.length > 0 && (
+              <Badge variant="outline" className="gap-1 text-[10px]">
+                <Mail className="size-3" />
+                {contact.emailLogs.length}
+              </Badge>
+            )}
           </div>
-          <span className="text-xs font-semibold text-emerald-400">
-            £{totalSpent.toLocaleString()}
-          </span>
+          <div className="text-right">
+            <p className="text-xs font-semibold text-emerald-400">£{totalSpent.toLocaleString()}</p>
+            {monthlyRetainer > 0 && (
+              <p className="text-[10px] text-emerald-400/80">£{monthlyRetainer.toLocaleString()}/mo</p>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>

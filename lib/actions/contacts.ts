@@ -4,7 +4,14 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { findOrCreateContact } from "@/lib/contacts-linking";
-import { createContactSchema, updateContactSchema, linkProjectSchema, unlinkProjectSchema } from "@/lib/validation/contact";
+import {
+  createContactSchema,
+  updateContactSchema,
+  linkProjectSchema,
+  unlinkProjectSchema,
+  addEmailLogSchema,
+  deleteEmailLogSchema,
+} from "@/lib/validation/contact";
 
 async function requireSession() {
   const session = await auth();
@@ -16,18 +23,31 @@ function revalidateContacts() {
   revalidatePath("/projects");
 }
 
+const PROJECT_MONEY_SELECT = {
+  id: true,
+  name: true,
+  stage: true,
+  budget: true,
+  portalSlug: true,
+  retainerAmount: true,
+  retainerActive: true,
+} as const;
+
 export async function listContacts() {
   await requireSession();
   return prisma.contact.findMany({
     orderBy: { name: "asc" },
     include: {
       projects: {
-        select: { id: true, name: true, stage: true, budget: true, portalSlug: true },
+        select: PROJECT_MONEY_SELECT,
         orderBy: { createdAt: "desc" },
       },
       leads: {
         select: { id: true, name: true, stage: true },
         orderBy: { createdAt: "desc" },
+      },
+      emailLogs: {
+        orderBy: { contactedAt: "desc" },
       },
     },
   });
@@ -39,12 +59,15 @@ export async function getContactDetail(id: string) {
     where: { id },
     include: {
       projects: {
-        select: { id: true, name: true, stage: true, budget: true, portalSlug: true },
+        select: PROJECT_MONEY_SELECT,
         orderBy: { createdAt: "desc" },
       },
       leads: {
         select: { id: true, name: true, stage: true },
         orderBy: { createdAt: "desc" },
+      },
+      emailLogs: {
+        orderBy: { contactedAt: "desc" },
       },
     },
   });
@@ -160,6 +183,32 @@ export async function unlinkProjectFromContact(input: unknown) {
     where: { id: data.projectId },
     data: { contactId: null },
   });
+
+  revalidateContacts();
+}
+
+export async function addEmailLog(input: unknown) {
+  await requireSession();
+  const data = addEmailLogSchema.parse(input);
+
+  await prisma.emailLog.create({
+    data: {
+      contactId: data.contactId,
+      direction: data.direction,
+      subject: data.subject,
+      summary: data.summary,
+      contactedAt: data.contactedAt ?? new Date(),
+    },
+  });
+
+  revalidateContacts();
+}
+
+export async function deleteEmailLog(input: unknown) {
+  await requireSession();
+  const data = deleteEmailLogSchema.parse(input);
+
+  await prisma.emailLog.delete({ where: { id: data.id } });
 
   revalidateContacts();
 }

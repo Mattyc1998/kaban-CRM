@@ -91,3 +91,9 @@ export const updatePreviewUrlSchema = z.object({
   id: z.string().min(1),
   previewUrl: z.string().url().optional().or(z.literal("")),
 });
+
+export const updateRetainerSchema = z.object({
+  id: z.string().min(1),
+  retainerAmount: z.coerce.number().int().min(0).optional(),
+  retainerActive: z.boolean(),
+});

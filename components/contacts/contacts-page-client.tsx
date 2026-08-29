@@ -30,6 +30,11 @@ export function ContactsPageClient({ initialContacts }: { initialContacts: Conta
     (sum, c) => sum + c.projects.reduce((s, p) => s + (p.budget ?? 0), 0),
     0
   );
+  const totalMrr = initialContacts.reduce(
+    (sum, c) =>
+      sum + c.projects.filter((p) => p.retainerActive).reduce((s, p) => s + (p.retainerAmount ?? 0), 0),
+    0
+  );
 
   const filtered = initialContacts.filter((c) => {
     const q = searchQuery.trim().toLowerCase();
@@ -57,6 +62,11 @@ export function ContactsPageClient({ initialContacts }: { initialContacts: Conta
           <Badge variant="outline" className="h-8 gap-1.5 border-emerald-500/25 bg-emerald-500/10 px-3 text-sm text-emerald-400">
             Total Spent: £{totalSpent.toLocaleString()}
           </Badge>
+          {totalMrr > 0 && (
+            <Badge variant="outline" className="h-8 gap-1.5 border-teal-500/25 bg-teal-500/10 px-3 text-sm text-teal-400">
+              MRR: £{totalMrr.toLocaleString()}/mo
+            </Badge>
+          )}
           <Button variant="outline" size="sm" disabled={syncing} onClick={handleSync}>
             <RotateCw className={syncing ? "size-3.5 animate-spin" : "size-3.5"} />
             Sync Existing

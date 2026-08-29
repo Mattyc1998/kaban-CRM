@@ -20,3 +20,17 @@ export const linkProjectSchema = z.object({
 export const unlinkProjectSchema = z.object({
   projectId: z.string().min(1),
 });
+
+export const emailDirections = ["SENT", "RECEIVED"] as const;
+
+export const addEmailLogSchema = z.object({
+  contactId: z.string().min(1),
+  direction: z.enum(emailDirections),
+  subject: z.string().min(1).max(300),
+  summary: z.string().min(1).max(2000),
+  contactedAt: z.coerce.date().optional(),
+});
+
+export const deleteEmailLogSchema = z.object({
+  id: z.string().min(1),
+});

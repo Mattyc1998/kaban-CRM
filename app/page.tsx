@@ -9,6 +9,7 @@ import {
   Clock,
   AlertTriangle,
   CheckCircle2,
+  RefreshCw,
   Sparkles,
   ArrowRight,
 } from "lucide-react";
@@ -32,6 +33,7 @@ export default async function DashboardPage() {
     pipelineValue,
     projectStageCounts,
     overdueMilestones,
+    activeRetainers,
   ] = await Promise.all([
     prisma.lead.groupBy({ by: ["stage"], _count: true }),
     prisma.lead.groupBy({ by: ["source"], _count: true }),
@@ -42,6 +44,11 @@ export default async function DashboardPage() {
     prisma.project.groupBy({ by: ["stage"], _count: true }),
     prisma.projectTask.count({
       where: { done: false, dueAt: { lt: new Date() } },
+    }),
+    prisma.project.aggregate({
+      _sum: { retainerAmount: true },
+      _count: true,
+      where: { retainerActive: true },
     }),
   ]);
 
@@ -55,6 +62,7 @@ export default async function DashboardPage() {
       .reduce((sum, p) => sum + p._count, 0);
 
   const value = pipelineValue._sum.dealValue ?? 0;
+  const mrr = activeRetainers._sum.retainerAmount ?? 0;
 
   return (
     <AppShell active="/">
@@ -171,6 +179,13 @@ export default async function DashboardPage() {
             label="Completed Projects"
             value={projectStage("COMPLETED")}
             sublabel="Successfully launched"
+          />
+          <StatCard
+            icon={RefreshCw}
+            iconClassName="bg-teal-500/15 text-teal-400"
+            label="Monthly Recurring Revenue"
+            value={`£${mrr.toLocaleString()}`}
+            sublabel={`${activeRetainers._count} active retainer${activeRetainers._count === 1 ? "" : "s"}`}
           />
         </div>
       </section>
