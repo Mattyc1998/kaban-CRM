@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { Proposal } from "@prisma/client";
-import { CheckCircle2, XCircle, FileText, PoundSterling } from "lucide-react";
+import { CheckCircle2, XCircle, FileText, PoundSterling, Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -64,20 +64,31 @@ export function ProposalView({ proposal }: { proposal: Proposal }) {
       </div>
 
       <div className="mb-4 rounded-xl border border-border/60 bg-card p-5">
-        <div className="mb-1 flex items-center gap-2">
-          <h1 className="text-xl font-semibold">{proposal.title}</h1>
-          <Badge
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-semibold">{proposal.title}</h1>
+            <Badge
+              variant="outline"
+              className={
+                proposal.status === "SIGNED"
+                  ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-400"
+                  : proposal.status === "DECLINED"
+                  ? "border-rose-500/25 bg-rose-500/10 text-rose-400"
+                  : "border-primary/25 bg-primary/10 text-primary"
+              }
+            >
+              {proposal.status === "DRAFT" ? "PENDING REVIEW" : proposal.status}
+            </Badge>
+          </div>
+          <Button
+            size="sm"
             variant="outline"
-            className={
-              proposal.status === "SIGNED"
-                ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-400"
-                : proposal.status === "DECLINED"
-                ? "border-rose-500/25 bg-rose-500/10 text-rose-400"
-                : "border-primary/25 bg-primary/10 text-primary"
-            }
+            className="shrink-0"
+            onClick={() => window.open(`/api/proposals/${proposal.publicSlug}/pdf`, "_blank")}
           >
-            {proposal.status === "DRAFT" ? "PENDING REVIEW" : proposal.status}
-          </Badge>
+            <Download className="size-3.5" />
+            Download PDF
+          </Button>
         </div>
         {(proposal.clientCompany || proposal.clientName) && (
           <p className="text-sm text-muted-foreground">

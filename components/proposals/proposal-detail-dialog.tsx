@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Proposal } from "@prisma/client";
 import { toast } from "sonner";
-import { Copy, ExternalLink, CheckCircle2, XCircle, FolderPlus } from "lucide-react";
+import { Copy, ExternalLink, CheckCircle2, XCircle, FolderPlus, Download } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -171,6 +171,14 @@ export function ProposalDetailDialog({
               >
                 View
                 <ExternalLink className="size-3.5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(`/api/proposals/${proposal.publicSlug}/pdf`, "_blank")}
+              >
+                <Download className="size-3.5" />
+                PDF
               </Button>
             </div>
           </div>
