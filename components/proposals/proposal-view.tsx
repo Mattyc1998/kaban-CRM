@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { Proposal } from "@prisma/client";
-import { CheckCircle2, XCircle, FileText, PoundSterling, Download } from "lucide-react";
+import { CheckCircle2, XCircle, FileText, PoundSterling, Download, CreditCard, ClipboardList, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,8 @@ export function ProposalView({ proposal }: { proposal: Proposal }) {
   const router = useRouter();
 
   const clientDisplayName = proposal.clientCompany || proposal.clientName || "there";
+  const isPending = proposal.status === "DRAFT" || proposal.status === "SENT";
+  const isExpired = isPending && proposal.validUntil != null && new Date(proposal.validUntil) < new Date();
 
   function handleSign() {
     if (!name.trim()) {
@@ -95,7 +97,19 @@ export function ProposalView({ proposal }: { proposal: Proposal }) {
             Prepared for {[proposal.clientCompany, proposal.clientName].filter(Boolean).join(" — ")}
           </p>
         )}
+        {proposal.validUntil && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Valid until {new Date(proposal.validUntil).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+          </p>
+        )}
       </div>
+
+      {isExpired && (
+        <div className="mb-4 flex items-center gap-2.5 rounded-lg border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-400">
+          <AlertTriangle className="size-4 shrink-0" />
+          This proposal&rsquo;s validity date has passed — contact us if you&rsquo;d like an updated quote before signing.
+        </div>
+      )}
 
       <Card className="mb-4">
         <CardHeader>
@@ -117,6 +131,34 @@ export function ProposalView({ proposal }: { proposal: Proposal }) {
               Total Price
             </p>
             <p className="text-2xl font-bold">£{proposal.price.toLocaleString()}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {proposal.paymentTerms && (
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <CreditCard className="size-4 text-primary" />
+              Payment Terms
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed">{proposal.paymentTerms}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {proposal.clientProvides && (
+        <Card className="mb-4">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sm">
+              <ClipboardList className="size-4 text-primary" />
+              What We Need From You
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="whitespace-pre-wrap text-sm leading-relaxed">{proposal.clientProvides}</p>
           </CardContent>
         </Card>
       )}

@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/select";
 import { PROJECT_STAGES } from "@/lib/project-stages";
 import { KANBAN_STAGES } from "@/lib/kanban-stages";
-import type { CompanyWithRelations } from "@/lib/company-types";
+import { monthlyRetainerValue, type CompanyWithRelations } from "@/lib/company-types";
 import {
   updateCompany,
   deleteCompany,
@@ -234,9 +234,7 @@ export function CompanyDetailView({ company }: { company: CompanyWithRelations }
   }
 
   const totalSpent = company.projects.reduce((sum, p) => sum + (p.budget ?? 0), 0);
-  const monthlyRetainer = company.projects
-    .filter((p) => p.retainerActive)
-    .reduce((sum, p) => sum + (p.retainerAmount ?? 0), 0);
+  const monthlyRetainer = company.projects.reduce((sum, p) => sum + monthlyRetainerValue(p), 0);
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -278,7 +276,7 @@ export function CompanyDetailView({ company }: { company: CompanyWithRelations }
                 {company.projects.length} project{company.projects.length === 1 ? "" : "s"}
                 {company.leads.length > 0 && ` · ${company.leads.length} lead${company.leads.length === 1 ? "" : "s"}`}
                 {" · "}£{totalSpent.toLocaleString()} total spent
-                {monthlyRetainer > 0 && ` · £${monthlyRetainer.toLocaleString()}/mo retainer`}
+                {monthlyRetainer > 0 && ` · £${Math.round(monthlyRetainer).toLocaleString()}/mo retainer`}
               </p>
             </div>
             <div className="flex shrink-0 gap-2">
@@ -416,7 +414,9 @@ export function CompanyDetailView({ company }: { company: CompanyWithRelations }
                           <span className="text-xs text-muted-foreground">£{p.budget.toLocaleString()}</span>
                         )}
                         {p.retainerActive && p.retainerAmount != null && (
-                          <span className="text-xs text-emerald-400">£{p.retainerAmount.toLocaleString()}/mo</span>
+                          <span className="text-xs text-emerald-400">
+                            £{p.retainerAmount.toLocaleString()}/{p.retainerInterval === "YEARLY" ? "yr" : "mo"}
+                          </span>
                         )}
                       </div>
                     </div>

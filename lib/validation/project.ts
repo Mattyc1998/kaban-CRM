@@ -11,6 +11,8 @@ export const projectStages = [
 
 export const taskPriorities = ["LOW", "MEDIUM", "HIGH"] as const;
 
+export const retainerIntervals = ["MONTHLY", "YEARLY"] as const;
+
 export const createProjectSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
   clientName: z.string().max(200).optional().or(z.literal("")),
@@ -96,4 +98,5 @@ export const updateRetainerSchema = z.object({
   id: z.string().min(1),
   retainerAmount: z.coerce.number().int().min(0).optional(),
   retainerActive: z.boolean(),
+  retainerInterval: z.enum(retainerIntervals).default("MONTHLY"),
 });

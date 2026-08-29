@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { NewCompanyDialog } from "@/components/contacts/new-company-dialog";
 import { CompanyCard } from "@/components/contacts/company-card";
 import { syncExistingContacts } from "@/lib/actions/contacts";
-import type { CompanyWithRelations } from "@/lib/company-types";
+import { monthlyRetainerValue, type CompanyWithRelations } from "@/lib/company-types";
 
 export function ContactsPageClient({ initialCompanies }: { initialCompanies: CompanyWithRelations[] }) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -30,8 +30,7 @@ export function ContactsPageClient({ initialCompanies }: { initialCompanies: Com
     0
   );
   const totalMrr = initialCompanies.reduce(
-    (sum, c) =>
-      sum + c.projects.filter((p) => p.retainerActive).reduce((s, p) => s + (p.retainerAmount ?? 0), 0),
+    (sum, c) => sum + c.projects.reduce((s, p) => s + monthlyRetainerValue(p), 0),
     0
   );
 
@@ -62,7 +61,7 @@ export function ContactsPageClient({ initialCompanies }: { initialCompanies: Com
           </Badge>
           {totalMrr > 0 && (
             <Badge variant="outline" className="h-8 gap-1.5 border-teal-500/25 bg-teal-500/10 px-3 text-sm text-teal-400">
-              MRR: £{totalMrr.toLocaleString()}/mo
+              MRR: £{Math.round(totalMrr).toLocaleString()}/mo
             </Badge>
           )}
           <Button variant="outline" size="sm" disabled={syncing} onClick={handleSync}>

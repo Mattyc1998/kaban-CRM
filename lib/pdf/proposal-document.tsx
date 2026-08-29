@@ -136,6 +136,18 @@ const styles = StyleSheet.create({
     fontSize: 9.5,
     color: MUTED,
   },
+  expiredBlock: {
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#f5cf8a",
+    backgroundColor: "#fdf6e8",
+    borderRadius: 4,
+    padding: 12,
+  },
+  expiredText: {
+    fontSize: 9.5,
+    color: "#8a5a00",
+  },
   footer: {
     position: "absolute",
     bottom: 32,
@@ -173,8 +185,14 @@ function formatDate(date: Date) {
   );
 }
 
+function reference(id: string) {
+  return id.slice(-8).toUpperCase();
+}
+
 export function ProposalDocument({ proposal }: { proposal: Proposal }) {
   const clientLine = [proposal.clientCompany, proposal.clientName].filter(Boolean).join(" — ");
+  const isPending = proposal.status === "DRAFT" || proposal.status === "SENT";
+  const isExpired = isPending && proposal.validUntil != null && proposal.validUntil < new Date();
 
   return (
     <Document title={`${proposal.title} — Proposal`}>
@@ -185,8 +203,11 @@ export function ProposalDocument({ proposal }: { proposal: Proposal }) {
             <Text style={styles.brandName}>ClearFlow AI</Text>
           </View>
           <View>
-            <Text style={styles.docLabel}>Proposal</Text>
+            <Text style={styles.docLabel}>Proposal #{reference(proposal.id)}</Text>
             <Text style={styles.docDate}>{formatDate(proposal.createdAt)}</Text>
+            {proposal.validUntil && (
+              <Text style={styles.docDate}>Valid until {formatDate(proposal.validUntil)}</Text>
+            )}
           </View>
         </View>
 
@@ -194,6 +215,15 @@ export function ProposalDocument({ proposal }: { proposal: Proposal }) {
           <Text style={styles.title}>{proposal.title}</Text>
           {clientLine && <Text style={styles.preparedFor}>Prepared for {clientLine}</Text>}
         </View>
+
+        {isExpired && (
+          <View style={styles.expiredBlock}>
+            <Text style={styles.expiredText}>
+              This proposal&rsquo;s validity date has passed — contact us for an updated quote before
+              signing.
+            </Text>
+          </View>
+        )}
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Scope of Work</Text>
@@ -209,6 +239,29 @@ export function ProposalDocument({ proposal }: { proposal: Proposal }) {
             </View>
           </View>
         )}
+
+        {proposal.paymentTerms && (
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>Payment Terms</Text>
+            <Text style={styles.scopeText}>{proposal.paymentTerms}</Text>
+          </View>
+        )}
+
+        {proposal.clientProvides && (
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>What We Need From You</Text>
+            <Text style={styles.scopeText}>{proposal.clientProvides}</Text>
+          </View>
+        )}
+
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>Next Steps</Text>
+          <Text style={styles.scopeText}>
+            1. Review the scope, price, and terms above.{"\n"}
+            2. Sign electronically via the link this proposal was shared on.{"\n"}
+            3. We&rsquo;ll confirm your kick-off date within 1 business day of signing.
+          </Text>
+        </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Acceptance</Text>

@@ -8,9 +8,16 @@ export const createProposalSchema = z.object({
   clientEmail: z.string().email().optional().or(z.literal("")),
   scope: z.string().min(1, "Scope of work is required").max(10000),
   price: z.coerce.number().int().min(0).optional(),
+  clientProvides: z.string().max(4000).optional().or(z.literal("")),
+  paymentTerms: z.string().max(2000).optional().or(z.literal("")),
+  validUntil: z.string().optional().or(z.literal("")),
 });
 
 export const updateProposalSchema = createProposalSchema.extend({
+  id: z.string().min(1),
+});
+
+export const deleteProposalSchema = z.object({
   id: z.string().min(1),
 });
 

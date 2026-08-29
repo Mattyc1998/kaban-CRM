@@ -9,6 +9,7 @@ import { applyProjectTemplate } from "@/lib/project-templates";
 import {
   createProposalSchema,
   updateProposalSchema,
+  deleteProposalSchema,
   markProposalSentSchema,
   convertProposalSchema,
 } from "@/lib/validation/proposal";
@@ -55,6 +56,9 @@ export async function createProposal(input: unknown) {
       clientEmail: data.clientEmail || null,
       scope: data.scope,
       price: data.price,
+      clientProvides: data.clientProvides || null,
+      paymentTerms: data.paymentTerms || null,
+      validUntil: data.validUntil ? new Date(data.validUntil) : null,
       publicSlug: generatePortalSlug(data.title),
     },
   });
@@ -82,8 +86,20 @@ export async function updateProposal(input: unknown) {
       clientEmail: data.clientEmail || null,
       scope: data.scope,
       price: data.price,
+      clientProvides: data.clientProvides || null,
+      paymentTerms: data.paymentTerms || null,
+      validUntil: data.validUntil ? new Date(data.validUntil) : null,
     },
   });
+
+  revalidateProposals();
+}
+
+export async function deleteProposal(input: unknown) {
+  await requireSession();
+  const data = deleteProposalSchema.parse(input);
+
+  await prisma.proposal.delete({ where: { id: data.id } });
 
   revalidateProposals();
 }

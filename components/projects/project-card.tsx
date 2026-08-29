@@ -73,7 +73,7 @@ export function ProjectCard({
         )}
         {project.retainerActive && project.retainerAmount != null && (
           <Badge variant="outline" className="mt-1.5 border-emerald-500/25 bg-emerald-500/10 text-[10px] text-emerald-400">
-            £{project.retainerAmount.toLocaleString()}/mo retainer
+            £{project.retainerAmount.toLocaleString()}/{project.retainerInterval === "YEARLY" ? "yr" : "mo"} retainer
           </Badge>
         )}
 

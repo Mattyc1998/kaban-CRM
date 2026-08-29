@@ -128,6 +128,11 @@ model LeadActivity {
 
 // ---------- Project tracking ----------
 
+enum RetainerInterval {
+  MONTHLY
+  YEARLY
+}
+
 enum ProjectStage {
   ONBOARDING
   PLANNING
@@ -168,8 +173,12 @@ model Project {
   // Ongoing hosting/maintenance billing after the one-off project budget —
   // separate from `budget` since they're different kinds of money (a
   // one-off spend vs. a recurring rate) and shouldn't be summed together.
-  retainerAmount Int?
-  retainerActive Boolean @default(false)
+  retainerAmount   Int?
+  retainerActive   Boolean          @default(false)
+  // Some clients pay annually instead of monthly — MRR roll-ups normalize
+  // a YEARLY amount to its monthly equivalent (amount / 12) rather than
+  // assuming every retainer bills the same way.
+  retainerInterval RetainerInterval @default(MONTHLY)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -284,6 +293,16 @@ model Proposal {
   // editor product.
   scope         String
   price         Int?
+
+  // What the client needs to hand over before/during the work (assets,
+  // logins, copy) and how payment is structured — the two things clients
+  // most often ask about after reading the scope. Both optional free text
+  // since exact terms vary per deal.
+  clientProvides String?
+  paymentTerms   String?
+  // Date this quote stops being honored (e.g. pricing may change after).
+  // Optional — proposals without one just don't show an expiry.
+  validUntil     DateTime?
 
   status     ProposalStatus @default(DRAFT)
   // Unguessable slug backing the public /proposal/[slug] page — same

@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Proposal } from "@prisma/client";
 import { toast } from "sonner";
-import { Copy, ExternalLink, CheckCircle2, XCircle, FolderPlus, Download } from "lucide-react";
+import { Copy, ExternalLink, CheckCircle2, XCircle, FolderPlus, Download, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -27,7 +27,13 @@ import {
 } from "@/components/ui/select";
 import { PROJECT_TEMPLATES } from "@/lib/project-templates";
 import { PROPOSAL_STATUS_BADGE } from "@/components/proposals/proposal-card";
-import { getProposalDetail, updateProposal, markProposalSent, convertProposalToProject } from "@/lib/actions/proposals";
+import {
+  getProposalDetail,
+  updateProposal,
+  deleteProposal,
+  markProposalSent,
+  convertProposalToProject,
+} from "@/lib/actions/proposals";
 
 export type ProposalSummary = Proposal & {
   company: { id: string; name: string } | null;
@@ -55,6 +61,9 @@ export function ProposalDetailDialog({
   const [clientEmail, setClientEmail] = useState("");
   const [scope, setScope] = useState("");
   const [price, setPrice] = useState("");
+  const [clientProvides, setClientProvides] = useState("");
+  const [paymentTerms, setPaymentTerms] = useState("");
+  const [validUntil, setValidUntil] = useState("");
   const [templateKey, setTemplateKey] = useState("");
   const [detail, setDetail] = useState<ProposalDetail | null>(null);
   const [pending, startTransition] = useTransition();
@@ -69,6 +78,9 @@ export function ProposalDetailDialog({
     setClientEmail(proposal?.clientEmail ?? "");
     setScope(proposal?.scope ?? "");
     setPrice(proposal?.price?.toString() ?? "");
+    setClientProvides(proposal?.clientProvides ?? "");
+    setPaymentTerms(proposal?.paymentTerms ?? "");
+    setValidUntil(proposal?.validUntil ? new Date(proposal.validUntil).toISOString().slice(0, 10) : "");
     setTemplateKey("");
     setDetail(null);
   }
@@ -105,12 +117,25 @@ export function ProposalDetailDialog({
           clientEmail,
           scope,
           price: price || undefined,
+          clientProvides: clientProvides || undefined,
+          paymentTerms: paymentTerms || undefined,
+          validUntil: validUntil || undefined,
         });
         toast.success("Proposal saved");
         refresh();
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Failed to save");
       }
+    });
+  }
+
+  function handleDelete() {
+    if (!confirm(`Delete "${proposal!.title}"? This can't be undone.`)) return;
+    startTransition(async () => {
+      await deleteProposal({ id: proposal!.id });
+      toast.success("Proposal deleted");
+      onOpenChange(false);
+      router.refresh();
     });
   }
 
@@ -221,23 +246,70 @@ export function ProposalDetailDialog({
             <Label htmlFor="pd-scope">Scope of work</Label>
             <Textarea id="pd-scope" rows={6} value={scope} onChange={(e) => setScope(e.target.value)} disabled={locked} />
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="pd-price">Price (£)</Label>
+              <Input id="pd-price" type="number" min={0} step={1} value={price} onChange={(e) => setPrice(e.target.value)} disabled={locked} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="pd-valid">Valid until</Label>
+              <Input
+                id="pd-valid"
+                type="date"
+                value={validUntil}
+                onChange={(e) => setValidUntil(e.target.value)}
+                disabled={locked}
+              />
+            </div>
+          </div>
           <div className="grid gap-2">
-            <Label htmlFor="pd-price">Price (£)</Label>
-            <Input id="pd-price" type="number" min={0} step={1} value={price} onChange={(e) => setPrice(e.target.value)} disabled={locked} />
+            <Label htmlFor="pd-terms">Payment terms</Label>
+            <Textarea
+              id="pd-terms"
+              rows={2}
+              value={paymentTerms}
+              onChange={(e) => setPaymentTerms(e.target.value)}
+              disabled={locked}
+              placeholder="e.g. 50% deposit on signing, 50% on completion"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="pd-provides">What we need from the client</Label>
+            <Textarea
+              id="pd-provides"
+              rows={2}
+              value={clientProvides}
+              onChange={(e) => setClientProvides(e.target.value)}
+              disabled={locked}
+              placeholder="e.g. Logo & brand assets, page copy, domain/hosting login"
+            />
           </div>
 
-          {!locked && (
+          <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <Button onClick={handleSave} disabled={pending}>
-                Save changes
-              </Button>
-              {current.status === "DRAFT" && (
-                <Button variant="secondary" onClick={handleMarkSent} disabled={pending}>
-                  Mark as Sent
-                </Button>
+              {!locked && (
+                <>
+                  <Button onClick={handleSave} disabled={pending}>
+                    Save changes
+                  </Button>
+                  {current.status === "DRAFT" && (
+                    <Button variant="secondary" onClick={handleMarkSent} disabled={pending}>
+                      Mark as Sent
+                    </Button>
+                  )}
+                </>
               )}
             </div>
-          )}
+            <Button
+              variant="outline"
+              className="text-rose-400 hover:text-rose-400"
+              onClick={handleDelete}
+              disabled={pending}
+            >
+              <Trash2 className="size-3.5" />
+              Delete
+            </Button>
+          </div>
         </div>
 
         {current.status === "SIGNED" && detail && (

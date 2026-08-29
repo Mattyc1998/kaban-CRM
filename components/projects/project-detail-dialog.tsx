@@ -27,7 +27,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PROJECT_STAGES } from "@/lib/project-stages";
-import { taskPriorities } from "@/lib/validation/project";
+import { taskPriorities, retainerIntervals } from "@/lib/validation/project";
+import type { RetainerInterval } from "@prisma/client";
 import { PRIORITY_BADGE } from "@/lib/task-priority";
 import type { ProjectCardData } from "@/components/projects/project-card";
 import {
@@ -74,6 +75,7 @@ export function ProjectDetailDialog({
   const [previewUrlInput, setPreviewUrlInput] = useState("");
   const [retainerAmountInput, setRetainerAmountInput] = useState("");
   const [retainerActiveInput, setRetainerActiveInput] = useState(false);
+  const [retainerIntervalInput, setRetainerIntervalInput] = useState<RetainerInterval>("MONTHLY");
   const [pending, startTransition] = useTransition();
   const deliverableFileRef = useRef<HTMLInputElement>(null);
   const mediaFileRef = useRef<HTMLInputElement>(null);
@@ -88,6 +90,7 @@ export function ProjectDetailDialog({
     setPreviewUrlInput(project?.previewUrl ?? "");
     setRetainerAmountInput(project?.retainerAmount?.toString() ?? "");
     setRetainerActiveInput(project?.retainerActive ?? false);
+    setRetainerIntervalInput(project?.retainerInterval ?? "MONTHLY");
   }
 
   useEffect(() => {
@@ -129,6 +132,7 @@ export function ProjectDetailDialog({
         id: project!.id,
         retainerAmount: retainerAmountInput || undefined,
         retainerActive: retainerActiveInput,
+        retainerInterval: retainerIntervalInput,
       });
       toast.success("Retainer saved");
       refresh();
@@ -315,7 +319,7 @@ export function ProjectDetailDialog({
               Active
             </label>
             <Input
-              placeholder="Amount per month (£)"
+              placeholder="Amount (£)"
               type="number"
               min={0}
               step={1}
@@ -323,6 +327,21 @@ export function ProjectDetailDialog({
               onChange={(e) => setRetainerAmountInput(e.target.value)}
               className="h-8 flex-1"
             />
+            <Select
+              value={retainerIntervalInput}
+              onValueChange={(v) => setRetainerIntervalInput((v as RetainerInterval) ?? "MONTHLY")}
+            >
+              <SelectTrigger className="h-8 w-28">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {retainerIntervals.map((interval) => (
+                  <SelectItem key={interval} value={interval}>
+                    {interval === "MONTHLY" ? "/ month" : "/ year"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button size="sm" variant="secondary" disabled={pending} onClick={handleSaveRetainer}>
               Save
             </Button>

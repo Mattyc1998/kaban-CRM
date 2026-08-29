@@ -4,13 +4,11 @@ import Link from "next/link";
 import { Mail, Users, FolderKanban, KanbanSquare } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { CompanyWithRelations } from "@/lib/company-types";
+import { monthlyRetainerValue, type CompanyWithRelations } from "@/lib/company-types";
 
 export function CompanyCard({ company }: { company: CompanyWithRelations }) {
   const totalSpent = company.projects.reduce((sum, p) => sum + (p.budget ?? 0), 0);
-  const monthlyRetainer = company.projects
-    .filter((p) => p.retainerActive)
-    .reduce((sum, p) => sum + (p.retainerAmount ?? 0), 0);
+  const monthlyRetainer = company.projects.reduce((sum, p) => sum + monthlyRetainerValue(p), 0);
   const primaryContact = company.contacts[0];
 
   return (
@@ -59,7 +57,7 @@ export function CompanyCard({ company }: { company: CompanyWithRelations }) {
             <div className="text-right">
               <p className="text-xs font-semibold text-emerald-400">£{totalSpent.toLocaleString()}</p>
               {monthlyRetainer > 0 && (
-                <p className="text-[10px] text-emerald-400/80">£{monthlyRetainer.toLocaleString()}/mo</p>
+                <p className="text-[10px] text-emerald-400/80">£{Math.round(monthlyRetainer).toLocaleString()}/mo</p>
               )}
             </div>
           </div>

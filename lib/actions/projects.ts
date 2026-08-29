@@ -148,6 +148,7 @@ export async function updateRetainer(input: unknown) {
     data: {
       retainerAmount: data.retainerAmount,
       retainerActive: data.retainerActive,
+      retainerInterval: data.retainerInterval,
     },
   });
 

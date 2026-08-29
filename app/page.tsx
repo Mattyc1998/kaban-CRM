@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { monthlyRetainerValue } from "@/lib/company-types";
 import { AppShell } from "@/components/layout/app-shell";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { IngestionChannels } from "@/components/dashboard/ingestion-channels";
@@ -45,10 +46,9 @@ export default async function DashboardPage() {
     prisma.projectTask.count({
       where: { done: false, dueAt: { lt: new Date() } },
     }),
-    prisma.project.aggregate({
-      _sum: { retainerAmount: true },
-      _count: true,
+    prisma.project.findMany({
       where: { retainerActive: true },
+      select: { retainerAmount: true, retainerActive: true, retainerInterval: true },
     }),
   ]);
 
@@ -62,7 +62,9 @@ export default async function DashboardPage() {
       .reduce((sum, p) => sum + p._count, 0);
 
   const value = pipelineValue._sum.dealValue ?? 0;
-  const mrr = activeRetainers._sum.retainerAmount ?? 0;
+  // Normalizes any YEARLY retainers to their monthly equivalent so mixed
+  // monthly/yearly billing still rolls up into an accurate MRR figure.
+  const mrr = activeRetainers.reduce((sum, p) => sum + monthlyRetainerValue(p), 0);
 
   return (
     <AppShell active="/">
@@ -184,8 +186,8 @@ export default async function DashboardPage() {
             icon={RefreshCw}
             iconClassName="bg-teal-500/15 text-teal-400"
             label="Monthly Recurring Revenue"
-            value={`£${mrr.toLocaleString()}`}
-            sublabel={`${activeRetainers._count} active retainer${activeRetainers._count === 1 ? "" : "s"}`}
+            value={`£${Math.round(mrr).toLocaleString()}`}
+            sublabel={`${activeRetainers.length} active retainer${activeRetainers.length === 1 ? "" : "s"} · £${Math.round(mrr * 12).toLocaleString()}/yr equivalent`}
           />
         </div>
       </section>

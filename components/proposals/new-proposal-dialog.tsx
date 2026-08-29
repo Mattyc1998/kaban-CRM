@@ -32,12 +32,19 @@ export type CompanyOption = {
   primaryContact: { name: string; email: string | null } | null;
 };
 
+function defaultValidUntil() {
+  const d = new Date();
+  d.setDate(d.getDate() + 30);
+  return d.toISOString().slice(0, 10);
+}
+
 export function NewProposalDialog({ companies }: { companies: CompanyOption[] }) {
   const [open, setOpen] = useState(false);
   const [companyId, setCompanyId] = useState("");
   const [clientName, setClientName] = useState("");
   const [clientCompany, setClientCompany] = useState("");
   const [clientEmail, setClientEmail] = useState("");
+  const [validUntil, setValidUntil] = useState(defaultValidUntil);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
 
@@ -57,6 +64,7 @@ export function NewProposalDialog({ companies }: { companies: CompanyOption[] })
     setClientName("");
     setClientCompany("");
     setClientEmail("");
+    setValidUntil(defaultValidUntil());
   }
 
   function handleSubmit(formData: FormData) {
@@ -70,6 +78,9 @@ export function NewProposalDialog({ companies }: { companies: CompanyOption[] })
           clientEmail,
           scope: formData.get("scope"),
           price: formData.get("price") || undefined,
+          clientProvides: formData.get("clientProvides") || undefined,
+          paymentTerms: formData.get("paymentTerms") || undefined,
+          validUntil: validUntil || undefined,
         });
         toast.success("Proposal created");
         setOpen(false);
@@ -143,9 +154,38 @@ export function NewProposalDialog({ companies }: { companies: CompanyOption[] })
               <Label htmlFor="pr-scope">Scope of work</Label>
               <Textarea id="pr-scope" name="scope" rows={6} required placeholder="What's included, timeline, revision rounds..." />
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="pr-price">Price (£)</Label>
+                <Input id="pr-price" name="price" type="number" min={0} step={1} />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="pr-valid">Valid until</Label>
+                <Input
+                  id="pr-valid"
+                  type="date"
+                  value={validUntil}
+                  onChange={(e) => setValidUntil(e.target.value)}
+                />
+              </div>
+            </div>
             <div className="grid gap-2">
-              <Label htmlFor="pr-price">Price (£)</Label>
-              <Input id="pr-price" name="price" type="number" min={0} step={1} />
+              <Label htmlFor="pr-terms">Payment terms</Label>
+              <Textarea
+                id="pr-terms"
+                name="paymentTerms"
+                rows={2}
+                placeholder="e.g. 50% deposit on signing, 50% on completion"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="pr-provides">What we need from the client</Label>
+              <Textarea
+                id="pr-provides"
+                name="clientProvides"
+                rows={2}
+                placeholder="e.g. Logo & brand assets, page copy, domain/hosting login"
+              />
             </div>
           </div>
           <DialogFooter>

@@ -36,6 +36,7 @@ const PROJECT_MONEY_SELECT = {
   portalSlug: true,
   retainerAmount: true,
   retainerActive: true,
+  retainerInterval: true,
 } as const;
 
 const COMPANY_INCLUDE = {
