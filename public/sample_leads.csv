@@ -1,0 +1,13 @@
+lead_name,company,phone,email,sequence_day,next_call_date,status,source
+John Smith,Smith Roofing,07700900001,john@smithroofing.example,1,2026-08-27,active,Instantly
+Sarah Jones,Jones Bakery,07700900002,sarah@jonesbakery.example,1,2026-08-29,active,Manual
+Mike Chen,Chen Consulting,07700900003,mike@chenconsulting.example,3,2026-08-28,active,n8n
+Emma Wilson,Wilson Design,07700900004,emma@wilsondesign.example,3,2026-08-29,active,Instantly
+David Brown,Brown Motors,07700900005,david@brownmotors.example,5,2026-08-25,active,Manual
+Lisa Taylor,Taylor Events,07700900006,lisa@taylorevents.example,5,2026-08-29,active,n8n
+Tom Anderson,Anderson Plumbing,07700900007,tom@andersonplumbing.example,7,2026-08-26,active,Instantly
+Rachel Green,Green Landscaping,07700900008,rachel@greenlandscaping.example,7,2026-08-29,active,Manual
+James White,White Electrical,07700900009,james@whiteelectrical.example,1,2026-09-02,active,n8n
+Sophie Clark,Clark Catering,07700900010,sophie@clarkcatering.example,3,2026-08-24,active,Instantly
+Chris Martin,Martin Autos,07700900011,chris@martinautos.example,1,2026-08-20,complete,Manual
+Amy Lewis,Lewis Florists,07700900012,amy@lewisflorists.example,7,2026-08-18,complete,n8n

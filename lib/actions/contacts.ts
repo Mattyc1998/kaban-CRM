@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { findOrCreateCompany } from "@/lib/contacts-linking";
+import { uploadEmailAttachment } from "@/lib/integrations/blob-storage";
 import {
   createCompanySchema,
   updateCompanySchema,
@@ -48,6 +49,7 @@ const COMPANY_INCLUDE = {
   },
   emailLogs: {
     orderBy: { contactedAt: "desc" as const },
+    include: { attachments: true },
   },
 };
 
@@ -212,11 +214,18 @@ export async function unlinkProjectFromContact(input: unknown) {
   revalidateContacts();
 }
 
-export async function addEmailLog(input: unknown) {
+// FormData, not a plain object, since attachments require multipart —
+// mirrors uploadProjectFileAction in lib/actions/projects.ts.
+export async function addEmailLog(formData: FormData) {
   await requireSession();
-  const data = addEmailLogSchema.parse(input);
+  const data = addEmailLogSchema.parse({
+    companyId: formData.get("companyId"),
+    direction: formData.get("direction"),
+    subject: formData.get("subject"),
+    summary: formData.get("summary"),
+  });
 
-  await prisma.emailLog.create({
+  const emailLog = await prisma.emailLog.create({
     data: {
       companyId: data.companyId,
       direction: data.direction,
@@ -225,6 +234,14 @@ export async function addEmailLog(input: unknown) {
       contactedAt: data.contactedAt ?? new Date(),
     },
   });
+
+  const files = formData.getAll("attachments").filter((f): f is File => f instanceof File && f.size > 0);
+  for (const file of files) {
+    const uploaded = await uploadEmailAttachment(data.companyId, file);
+    await prisma.emailAttachment.create({
+      data: { emailLogId: emailLog.id, url: uploaded.url, name: uploaded.name },
+    });
+  }
 
   revalidateContacts();
 }

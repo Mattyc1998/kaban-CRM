@@ -27,3 +27,20 @@ export async function uploadProjectFile(
 
   return { url: blob.url, name: file.name };
 }
+
+export async function uploadEmailAttachment(
+  companyId: string,
+  file: File
+): Promise<{ url: string; name: string }> {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) throw new BlobNotConfiguredError();
+  if (file.size > MAX_UPLOAD_BYTES) {
+    throw new Error("File is too large (25MB max).");
+  }
+
+  const blob = await put(`email-attachments/${companyId}/${Date.now()}-${file.name}`, file, {
+    access: "public",
+    addRandomSuffix: true,
+  });
+
+  return { url: blob.url, name: file.name };
+}

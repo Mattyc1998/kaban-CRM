@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ import {
   Plus,
   Pencil,
   Users,
+  Paperclip,
 } from "lucide-react";
 import {
   Card,
@@ -71,6 +72,8 @@ export function CompanyDetailView({ company }: { company: CompanyWithRelations }
   const [emailDirection, setEmailDirection] = useState<EmailDirection>("SENT");
   const [emailSubject, setEmailSubject] = useState("");
   const [emailSummary, setEmailSummary] = useState("");
+  const [emailFiles, setEmailFiles] = useState<File[]>([]);
+  const emailFileRef = useRef<HTMLInputElement>(null);
 
   const [pending, startTransition] = useTransition();
   const router = useRouter();
@@ -191,14 +194,18 @@ export function CompanyDetailView({ company }: { company: CompanyWithRelations }
       return;
     }
     startTransition(async () => {
-      await addEmailLog({
-        companyId: company.id,
-        direction: emailDirection,
-        subject: emailSubject,
-        summary: emailSummary,
-      });
+      const formData = new FormData();
+      formData.set("companyId", company.id);
+      formData.set("direction", emailDirection);
+      formData.set("subject", emailSubject);
+      formData.set("summary", emailSummary);
+      emailFiles.forEach((f) => formData.append("attachments", f));
+
+      await addEmailLog(formData);
       setEmailSubject("");
       setEmailSummary("");
+      setEmailFiles([]);
+      if (emailFileRef.current) emailFileRef.current.value = "";
       toast.success("Email logged");
       refresh();
     });
@@ -498,6 +505,22 @@ export function CompanyDetailView({ company }: { company: CompanyWithRelations }
                     </div>
                     <p className="mt-1 text-sm font-medium">{e.subject}</p>
                     <p className="mt-0.5 text-sm text-muted-foreground">{e.summary}</p>
+                    {e.attachments.length > 0 && (
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {e.attachments.map((a) => (
+                          <a
+                            key={a.id}
+                            href={a.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-1 rounded-md border border-border/60 bg-muted/20 px-1.5 py-0.5 text-[11px] text-primary hover:underline"
+                          >
+                            <Paperclip className="size-2.5" />
+                            <span className="max-w-[140px] truncate">{a.name}</span>
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -536,6 +559,25 @@ export function CompanyDetailView({ company }: { company: CompanyWithRelations }
                   value={emailSummary}
                   onChange={(e) => setEmailSummary(e.target.value)}
                 />
+                <input
+                  ref={emailFileRef}
+                  type="file"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => setEmailFiles(Array.from(e.target.files ?? []))}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => emailFileRef.current?.click()}
+                >
+                  <Paperclip className="size-3.5" />
+                  {emailFiles.length > 0
+                    ? `${emailFiles.length} file${emailFiles.length === 1 ? "" : "s"} attached`
+                    : "Attach files (optional)"}
+                </Button>
                 <Button size="sm" className="w-full" disabled={pending} onClick={handleAddEmailLog}>
                   Log {emailDirection === "SENT" ? "Sent" : "Received"} Email
                 </Button>

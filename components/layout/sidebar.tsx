@@ -5,6 +5,7 @@ import {
   FileSignature,
   FolderKanban,
   Users,
+  Phone,
   Webhook,
   LogOut,
 } from "lucide-react";
@@ -16,6 +17,7 @@ import { auth, signOut } from "@/lib/auth";
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/leads", label: "Lead Pipeline", icon: KanbanSquare, badge: "8 Stages" },
+  { href: "/call-queue", label: "Call Queue", icon: Phone },
   { href: "/proposals", label: "Proposals", icon: FileSignature },
   { href: "/projects", label: "Project Tracking", icon: FolderKanban },
   { href: "/contacts", label: "Contacts", icon: Users },
