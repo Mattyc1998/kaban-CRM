@@ -72,19 +72,15 @@ function groupAndSort(queuedLeads: CallQueueLead[]): { day: number; leads: Marke
 
 // ---- Client-side CSV parsing (no libraries) ----
 
-// Google Maps / Places-style scraper export — the only format this importer
-// accepts. Rejecting anything else up front (rather than silently mapping
-// nothing and importing blank rows) is what makes "these headers only" real.
-const EXPECTED_HEADERS = [
-  "place_id",
-  "business_name",
-  "address",
-  "phone",
-  "email",
-  "website",
-  "rating",
-  "reviews",
-];
+// Google Maps / Places-style scraper export. business_name is the only
+// column that's actually required (it's the lead name) — every other
+// recognized column is mapped opportunistically if present, and anything
+// else in the sheet (extra scraper columns like has_website) is just
+// ignored rather than rejected, since real exports vary in exactly which
+// columns they include.
+const REQUIRED_HEADERS = ["business_name"];
+
+const DONE_VALUES = new Set(["true", "yes", "y", "1", "done", "complete", "completed"]);
 
 function stripBom(text: string) {
   // Excel's "CSV UTF-8" export (the common Windows path) prepends a BOM
@@ -123,7 +119,9 @@ function toImportRow(raw: Record<string, string>) {
     reviews: raw.reviews || undefined,
     sequenceDay: "1",
     nextCallDate: dateStr(new Date()),
-    status: "active",
+    // A "done" column (if present) marks a business as already handled —
+    // anything else defaults to a fresh active lead due today.
+    status: DONE_VALUES.has((raw.done || "").trim().toLowerCase()) ? "complete" : "active",
   };
 }
 
@@ -192,17 +190,10 @@ export function CallQueuePageClient({ initialLeads }: { initialLeads: CallQueueL
     reader.onload = () => {
       const text = String(reader.result);
       const headers = parseHeaders(text);
-      const missing = EXPECTED_HEADERS.filter((h) => !headers.includes(h));
-      const extra = headers.filter((h) => h && !EXPECTED_HEADERS.includes(h));
+      const missing = REQUIRED_HEADERS.filter((h) => !headers.includes(h));
 
       if (missing.length > 0) {
         toast.error(`CSV is missing required column${missing.length === 1 ? "" : "s"}: ${missing.join(", ")}`);
-        return;
-      }
-      if (extra.length > 0) {
-        toast.error(
-          `CSV has unexpected column${extra.length === 1 ? "" : "s"}: ${extra.join(", ")}. Expected only: ${EXPECTED_HEADERS.join(", ")}`
-        );
         return;
       }
 
