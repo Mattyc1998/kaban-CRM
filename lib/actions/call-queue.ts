@@ -3,11 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { findOrCreateCompany } from "@/lib/contacts-linking";
 import {
   importCallQueueSchema,
   rescheduleCallQueueSchema,
   markCalledSchema,
   deleteCallQueueLeadSchema,
+  convertCallQueueLeadSchema,
 } from "@/lib/validation/call-queue";
 
 async function requireSession() {
@@ -67,6 +69,15 @@ export async function markCalled(input: unknown) {
   await requireSession();
   const data = markCalledSchema.parse(input);
 
+  if (data.outcome === "NOT_INTERESTED") {
+    // Skip the rest of the cadence outright — no point calling again in 2
+    // days if they've already said no.
+    await prisma.callQueueLead.update({ where: { id: data.id }, data: { status: "COMPLETE" } });
+    revalidatePath("/call-queue");
+    return;
+  }
+
+  // NO_ANSWER — advance the 1 -> 3 -> 5 -> 7 cadence, same as before.
   const lead = await prisma.callQueueLead.findUniqueOrThrow({ where: { id: data.id } });
   const currentIndex = SEQUENCE.indexOf(lead.sequenceDay);
 
@@ -82,6 +93,68 @@ export async function markCalled(input: unknown) {
   }
 
   revalidatePath("/call-queue");
+}
+
+// Called when a Call Queue outcome is "Interested" — the whole point of the
+// cadence is to get here, so this is where a cold-call name actually
+// becomes a real Lead (and Company/Contact) in the sales pipeline, instead
+// of the call queue being a dead end that never talks to the rest of the
+// CRM.
+export async function convertCallQueueLeadToLead(input: unknown) {
+  await requireSession();
+  const data = convertCallQueueLeadSchema.parse(input);
+
+  const callLead = await prisma.callQueueLead.findUniqueOrThrow({ where: { id: data.id } });
+
+  const companyId = await findOrCreateCompany({
+    name: callLead.leadName,
+    email: callLead.email,
+    phone: callLead.phone,
+  });
+
+  const last = await prisma.lead.findFirst({
+    where: { stage: "INTERESTED" },
+    orderBy: { position: "desc" },
+  });
+
+  const context = [
+    callLead.address && `Address: ${callLead.address}`,
+    callLead.website && `Website: ${callLead.website}`,
+    callLead.rating != null &&
+      `Rating: ${callLead.rating}${callLead.reviews != null ? ` (${callLead.reviews} reviews)` : ""}`,
+  ].filter(Boolean);
+
+  const lead = await prisma.lead.create({
+    data: {
+      name: callLead.leadName,
+      email: callLead.email,
+      phone: callLead.phone,
+      companyId,
+      stage: "INTERESTED",
+      source: "MANUAL",
+      position: (last?.position ?? -1) + 1,
+      aiSummary: context.length > 0 ? `Cold-called via Call Queue. ${context.join(". ")}.` : null,
+    },
+  });
+
+  await prisma.leadActivity.create({
+    data: {
+      leadId: lead.id,
+      type: "NOTE",
+      content: `Converted from Call Queue after a call marked "Interested".`,
+    },
+  });
+
+  // Keeps the call queue record around as history (same as day-7
+  // exhaustion) rather than deleting it, but pulls it out of the active
+  // due list.
+  await prisma.callQueueLead.update({ where: { id: data.id }, data: { status: "COMPLETE" } });
+
+  revalidatePath("/leads");
+  revalidatePath("/");
+  revalidatePath("/call-queue");
+
+  return lead;
 }
 
 export async function rescheduleCallQueueLead(input: unknown) {

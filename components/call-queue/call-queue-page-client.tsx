@@ -17,13 +17,24 @@ import {
   Star,
   Globe,
   MapPin,
+  PhoneMissed,
+  ThumbsDown,
+  ArrowUpRight,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { importCallQueueLeads, markCalled, rescheduleCallQueueLead } from "@/lib/actions/call-queue";
+import {
+  importCallQueueLeads,
+  markCalled,
+  rescheduleCallQueueLead,
+  convertCallQueueLeadToLead,
+} from "@/lib/actions/call-queue";
+import type { callOutcomes } from "@/lib/validation/call-queue";
+
+type CallOutcome = (typeof callOutcomes)[number];
 
 // ---- Pure query/presentation helpers, mirroring the original spec ----
 
@@ -181,6 +192,7 @@ export function CallQueuePageClient({ initialLeads }: { initialLeads: CallQueueL
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
   const [rescheduleId, setRescheduleId] = useState<string | null>(null);
   const [rescheduleDate, setRescheduleDate] = useState("");
+  const [outcomeId, setOutcomeId] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [csvRows, setCsvRows] = useState<Record<string, string>[]>([]);
   const [dragOver, setDragOver] = useState(false);
@@ -208,17 +220,41 @@ export function CallQueuePageClient({ initialLeads }: { initialLeads: CallQueueL
 
   const visibleGroups = dayFilter === "all" ? grouped : grouped.filter((g) => g.day === dayFilter);
 
-  function handleMarkCalled(id: string) {
+  function openOutcomePicker(id: string) {
+    setRescheduleId(null);
+    setOutcomeId(id);
+  }
+
+  function handleOutcome(id: string, outcome: CallOutcome) {
+    setOutcomeId(null);
     setRemovingIds((prev) => new Set(prev).add(id));
     setTimeout(() => {
       startTransition(async () => {
-        await markCalled({ id });
-        router.refresh();
+        try {
+          if (outcome === "INTERESTED") {
+            await convertCallQueueLeadToLead({ id });
+            toast.success("Added to Lead Pipeline — Interested");
+          } else {
+            await markCalled({ id, outcome });
+            toast.success(
+              outcome === "NOT_INTERESTED" ? "Marked not interested" : "No answer — next call in 2 days"
+            );
+          }
+          router.refresh();
+        } catch (err) {
+          setRemovingIds((prev) => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          });
+          toast.error(err instanceof Error ? err.message : "Failed to log call outcome");
+        }
       });
     }, 300);
   }
 
   function openReschedule(id: string, current: Date) {
+    setOutcomeId(null);
     setRescheduleId(id);
     setRescheduleDate(dateStr(current));
   }
@@ -509,7 +545,7 @@ export function CallQueuePageClient({ initialLeads }: { initialLeads: CallQueueL
                           <Button
                             size="xs"
                             className="bg-emerald-500 text-white hover:bg-emerald-500/90"
-                            onClick={() => handleMarkCalled(lead.id)}
+                            onClick={() => openOutcomePicker(lead.id)}
                           >
                             <Check className="size-3" />
                             Called
@@ -524,6 +560,43 @@ export function CallQueuePageClient({ initialLeads }: { initialLeads: CallQueueL
                           </Button>
                         </div>
                       </div>
+
+                      {outcomeId === lead.id && (
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-border/60 pt-2">
+                          <span className="mr-0.5 text-xs text-muted-foreground">Outcome:</span>
+                          <Button
+                            size="xs"
+                            variant="secondary"
+                            disabled={pending}
+                            onClick={() => handleOutcome(lead.id, "NO_ANSWER")}
+                          >
+                            <PhoneMissed className="size-3" />
+                            No Answer
+                          </Button>
+                          <Button
+                            size="xs"
+                            variant="outline"
+                            disabled={pending}
+                            className="border-rose-500/30 text-rose-400 hover:text-rose-400"
+                            onClick={() => handleOutcome(lead.id, "NOT_INTERESTED")}
+                          >
+                            <ThumbsDown className="size-3" />
+                            Not Interested
+                          </Button>
+                          <Button
+                            size="xs"
+                            disabled={pending}
+                            className="bg-emerald-500 text-white hover:bg-emerald-500/90"
+                            onClick={() => handleOutcome(lead.id, "INTERESTED")}
+                          >
+                            <ArrowUpRight className="size-3" />
+                            Interested — Add to Pipeline
+                          </Button>
+                          <Button size="icon-sm" variant="ghost" onClick={() => setOutcomeId(null)}>
+                            <X className="size-3.5" />
+                          </Button>
+                        </div>
+                      )}
 
                       {rescheduleId === lead.id && (
                         <div className="mt-2 flex items-center gap-2 border-t border-border/60 pt-2">

@@ -29,10 +29,21 @@ export const rescheduleCallQueueSchema = z.object({
   nextCallDate: z.coerce.date(),
 });
 
+export const callOutcomes = ["NO_ANSWER", "NOT_INTERESTED", "INTERESTED"] as const;
+
 export const markCalledSchema = z.object({
   id: z.string().min(1),
+  // NO_ANSWER keeps advancing the 1/3/5/7 cadence (the original default
+  // behavior); NOT_INTERESTED marks complete immediately regardless of
+  // day. INTERESTED goes through convertCallQueueLeadToLead instead — it
+  // needs to create a Lead, not just flip a status.
+  outcome: z.enum(callOutcomes).default("NO_ANSWER"),
 });
 
 export const deleteCallQueueLeadSchema = z.object({
+  id: z.string().min(1),
+});
+
+export const convertCallQueueLeadSchema = z.object({
   id: z.string().min(1),
 });
