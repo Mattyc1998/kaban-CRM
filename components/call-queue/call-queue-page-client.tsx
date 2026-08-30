@@ -89,18 +89,67 @@ function stripBom(text: string) {
   return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
 }
 
+// A minimal RFC4180-style tokenizer — real exports quote fields that
+// contain commas (e.g. a full street address: "5 Sealcroft Cottages,
+// Detling, Maidstone, Kent, ME14 3HU"), and naively splitting every line
+// on "," shreds those into extra columns and shifts everything after them
+// (phone, rating, etc.) out of place. Handles quoted fields, "" as an
+// escaped quote, and commas/newlines inside quotes.
+function tokenizeCSV(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+
+    if (inQuotes) {
+      if (char === '"' && text[i + 1] === '"') {
+        field += '"';
+        i++;
+      } else if (char === '"') {
+        inQuotes = false;
+      } else {
+        field += char;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inQuotes = true;
+    } else if (char === ",") {
+      row.push(field.trim());
+      field = "";
+    } else if (char === "\r") {
+      // skip — \n (below) ends the row
+    } else if (char === "\n") {
+      row.push(field.trim());
+      if (row.some((v) => v !== "")) rows.push(row);
+      row = [];
+      field = "";
+    } else {
+      field += char;
+    }
+  }
+  if (field !== "" || row.length > 0) {
+    row.push(field.trim());
+    if (row.some((v) => v !== "")) rows.push(row);
+  }
+
+  return rows;
+}
+
 function parseHeaders(text: string): string[] {
-  const firstLine = stripBom(text).trim().split(/\r?\n/)[0] ?? "";
-  return firstLine.split(",").map((h) => h.trim().toLowerCase());
+  const rows = tokenizeCSV(stripBom(text));
+  return (rows[0] ?? []).map((h) => h.toLowerCase());
 }
 
 function parseCSV(text: string): Record<string, string>[] {
-  const cleaned = stripBom(text);
-  const lines = cleaned.trim().split(/\r?\n/).filter((l) => l.trim());
-  if (lines.length === 0) return [];
-  const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
-  return lines.slice(1).map((line) => {
-    const values = line.split(",").map((v) => v.trim());
+  const rows = tokenizeCSV(stripBom(text));
+  if (rows.length === 0) return [];
+  const headers = rows[0].map((h) => h.toLowerCase());
+  return rows.slice(1).map((values) => {
     const obj: Record<string, string> = {};
     headers.forEach((h, i) => (obj[h] = values[i] || ""));
     return obj;
