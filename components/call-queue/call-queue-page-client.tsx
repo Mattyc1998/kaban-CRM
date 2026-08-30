@@ -81,6 +81,34 @@ function groupAndSort(queuedLeads: CallQueueLead[]): { day: number; leads: Marke
     .map((day) => ({ day, leads: groups[day] }));
 }
 
+// Everything ACTIVE but not due yet — e.g. a lead just moved to Day 3 by a
+// "No Answer" outcome. Without this, a rescheduled lead has nowhere to be
+// seen until its date arrives, which just looks like it vanished.
+function groupUpcoming(allLeads: CallQueueLead[]) {
+  const today = dateStr(new Date());
+  const upcoming = allLeads
+    .filter((lead) => lead.status === "ACTIVE" && dateStr(lead.nextCallDate) > today)
+    .sort((a, b) => dateStr(a.nextCallDate).localeCompare(dateStr(b.nextCallDate)));
+
+  const groups: Record<number, CallQueueLead[]> = {};
+  upcoming.forEach((lead) => {
+    const key = lead.sequenceDay;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(lead);
+  });
+
+  return Object.keys(groups)
+    .map(Number)
+    .sort((a, b) => a - b)
+    .map((day) => ({ day, leads: groups[day] }));
+}
+
+function nextSequenceDay(current: number): number | null {
+  const idx = DAY_TABS.indexOf(current as (typeof DAY_TABS)[number]);
+  if (idx === -1 || idx === DAY_TABS.length - 1) return null;
+  return DAY_TABS[idx + 1];
+}
+
 // ---- Client-side CSV parsing (no libraries) ----
 
 // Google Maps / Places-style scraper export. business_name is the only
@@ -205,6 +233,9 @@ export function CallQueuePageClient({ initialLeads }: { initialLeads: CallQueueL
   const grouped = groupAndSort(queued);
   const dueCount = queued.length;
 
+  const upcomingGroups = groupUpcoming(initialLeads);
+  const upcomingCount = upcomingGroups.reduce((sum, g) => sum + g.leads.length, 0);
+
   const prevCount = useRef(dueCount);
   useEffect(() => {
     if (prevCount.current !== dueCount) {
@@ -227,6 +258,7 @@ export function CallQueuePageClient({ initialLeads }: { initialLeads: CallQueueL
 
   function handleOutcome(id: string, outcome: CallOutcome) {
     setOutcomeId(null);
+    const current = initialLeads.find((l) => l.id === id);
     setRemovingIds((prev) => new Set(prev).add(id));
     setTimeout(() => {
       startTransition(async () => {
@@ -234,10 +266,16 @@ export function CallQueuePageClient({ initialLeads }: { initialLeads: CallQueueL
           if (outcome === "INTERESTED") {
             await convertCallQueueLeadToLead({ id });
             toast.success("Added to Lead Pipeline — Interested");
+          } else if (outcome === "NOT_INTERESTED") {
+            await markCalled({ id, outcome });
+            toast.success("Marked not interested");
           } else {
             await markCalled({ id, outcome });
+            const next = current ? nextSequenceDay(current.sequenceDay) : null;
             toast.success(
-              outcome === "NOT_INTERESTED" ? "Marked not interested" : "No answer — next call in 2 days"
+              next
+                ? `No answer — moved to Day ${next}, see it under Upcoming (due in 2 days)`
+                : "No answer — cadence complete after Day 7"
             );
           }
           router.refresh();
@@ -251,6 +289,14 @@ export function CallQueuePageClient({ initialLeads }: { initialLeads: CallQueueL
         }
       });
     }, 300);
+  }
+
+  function handleCallNow(id: string) {
+    startTransition(async () => {
+      await rescheduleCallQueueLead({ id, nextCallDate: dateStr(new Date()) });
+      toast.success("Moved into today's queue");
+      router.refresh();
+    });
   }
 
   function openReschedule(id: string, current: Date) {
@@ -620,6 +666,82 @@ export function CallQueuePageClient({ initialLeads }: { initialLeads: CallQueueL
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Upcoming — active leads not due yet, so a "No Answer" reschedule is
+          visible somewhere instead of just disappearing until its date. */}
+      {upcomingCount > 0 && (
+        <div className="mt-6">
+          <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <span className="h-px flex-1 bg-border/60" />
+            Upcoming
+            <span className="text-primary">{upcomingCount}</span>
+            <span className="h-px flex-1 bg-border/60" />
+          </p>
+          <div className="space-y-4">
+            {upcomingGroups.map((group) => (
+              <div key={group.day}>
+                <p className="mb-1.5 text-[11px] font-medium text-muted-foreground">
+                  Day {group.day} &middot; {group.leads.length} lead{group.leads.length === 1 ? "" : "s"}
+                </p>
+                <div className="space-y-1.5">
+                  {group.leads.map((lead) => (
+                    <Card key={lead.id} className="gap-0 py-2.5">
+                      <CardContent className="px-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">{lead.leadName}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Due{" "}
+                              {new Date(lead.nextCallDate).toLocaleDateString("en-GB", {
+                                weekday: "short",
+                                day: "numeric",
+                                month: "short",
+                              })}
+                            </p>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-1.5">
+                            <Button
+                              size="xs"
+                              variant="secondary"
+                              disabled={pending}
+                              onClick={() => handleCallNow(lead.id)}
+                            >
+                              Call Now
+                            </Button>
+                            <Button
+                              size="xs"
+                              variant="ghost"
+                              onClick={() => openReschedule(lead.id, lead.nextCallDate)}
+                            >
+                              <CalendarClock className="size-3" />
+                            </Button>
+                          </div>
+                        </div>
+                        {rescheduleId === lead.id && (
+                          <div className="mt-2 flex items-center gap-2 border-t border-border/60 pt-2">
+                            <Input
+                              type="date"
+                              value={rescheduleDate}
+                              onChange={(e) => setRescheduleDate(e.target.value)}
+                              className="h-8 flex-1"
+                            />
+                            <Button size="xs" disabled={pending} onClick={confirmReschedule}>
+                              Confirm
+                            </Button>
+                            <Button size="icon-sm" variant="ghost" onClick={() => setRescheduleId(null)}>
+                              <X className="size-3.5" />
+                            </Button>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
