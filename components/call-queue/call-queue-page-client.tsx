@@ -14,6 +14,9 @@ import {
   ChevronUp,
   CheckCircle2,
   X,
+  Star,
+  Globe,
+  MapPin,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +29,10 @@ import { importCallQueueLeads, markCalled, rescheduleCallQueueLead } from "@/lib
 
 function dateStr(d: Date | string) {
   return new Date(d).toISOString().split("T")[0];
+}
+
+function websiteHref(url: string) {
+  return /^https?:\/\//i.test(url) ? url : `https://${url}`;
 }
 
 function getQueuedLeads(allLeads: CallQueueLead[]) {
@@ -65,12 +72,34 @@ function groupAndSort(queuedLeads: CallQueueLead[]): { day: number; leads: Marke
 
 // ---- Client-side CSV parsing (no libraries) ----
 
+// Google Maps / Places-style scraper export — the only format this importer
+// accepts. Rejecting anything else up front (rather than silently mapping
+// nothing and importing blank rows) is what makes "these headers only" real.
+const EXPECTED_HEADERS = [
+  "place_id",
+  "business_name",
+  "address",
+  "phone",
+  "email",
+  "website",
+  "rating",
+  "reviews",
+];
+
+function stripBom(text: string) {
+  // Excel's "CSV UTF-8" export (the common Windows path) prepends a BOM
+  // (char code 0xFEFF), which otherwise corrupts the first header and
+  // silently breaks every row.
+  return text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+}
+
+function parseHeaders(text: string): string[] {
+  const firstLine = stripBom(text).trim().split(/\r?\n/)[0] ?? "";
+  return firstLine.split(",").map((h) => h.trim().toLowerCase());
+}
+
 function parseCSV(text: string): Record<string, string>[] {
-  // Strip a UTF-8 BOM (char code 0xFEFF) — Excel's "CSV UTF-8" export (the
-  // common Windows path) prepends one, which otherwise corrupts the first
-  // header ("lead_name" becomes an unmatchable garbled key) and silently
-  // breaks every row.
-  const cleaned = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+  const cleaned = stripBom(text);
   const lines = cleaned.trim().split(/\r?\n/).filter((l) => l.trim());
   if (lines.length === 0) return [];
   const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
@@ -84,14 +113,17 @@ function parseCSV(text: string): Record<string, string>[] {
 
 function toImportRow(raw: Record<string, string>) {
   return {
-    leadName: raw.lead_name,
-    company: raw.company,
-    phone: raw.phone,
-    email: raw.email,
-    sequenceDay: raw.sequence_day,
-    nextCallDate: raw.next_call_date,
-    status: raw.status || "active",
-    source: raw.source,
+    leadName: raw.business_name,
+    phone: raw.phone || undefined,
+    email: raw.email || undefined,
+    placeId: raw.place_id || undefined,
+    address: raw.address || undefined,
+    website: raw.website || undefined,
+    rating: raw.rating || undefined,
+    reviews: raw.reviews || undefined,
+    sequenceDay: "1",
+    nextCallDate: dateStr(new Date()),
+    status: "active",
   };
 }
 
@@ -158,8 +190,23 @@ export function CallQueuePageClient({ initialLeads }: { initialLeads: CallQueueL
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      const rows = parseCSV(String(reader.result));
-      setCsvRows(rows);
+      const text = String(reader.result);
+      const headers = parseHeaders(text);
+      const missing = EXPECTED_HEADERS.filter((h) => !headers.includes(h));
+      const extra = headers.filter((h) => h && !EXPECTED_HEADERS.includes(h));
+
+      if (missing.length > 0) {
+        toast.error(`CSV is missing required column${missing.length === 1 ? "" : "s"}: ${missing.join(", ")}`);
+        return;
+      }
+      if (extra.length > 0) {
+        toast.error(
+          `CSV has unexpected column${extra.length === 1 ? "" : "s"}: ${extra.join(", ")}. Expected only: ${EXPECTED_HEADERS.join(", ")}`
+        );
+        return;
+      }
+
+      setCsvRows(parseCSV(text));
     };
     reader.readAsText(file);
   }
@@ -171,7 +218,7 @@ export function CallQueuePageClient({ initialLeads }: { initialLeads: CallQueueL
       const skipped = allRows.length - rows.length;
 
       if (rows.length === 0) {
-        toast.error('No valid rows found — check the CSV has a "lead_name" column with values');
+        toast.error('No valid rows found — check the CSV has a "business_name" column with values');
         return;
       }
 
@@ -299,19 +346,22 @@ export function CallQueuePageClient({ initialLeads }: { initialLeads: CallQueueL
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="border-b border-border/60 bg-muted/30">
-                        <th className="px-2 py-1.5 text-left font-medium">Lead</th>
-                        <th className="px-2 py-1.5 text-left font-medium">Company</th>
-                        <th className="px-2 py-1.5 text-left font-medium">Day</th>
-                        <th className="px-2 py-1.5 text-left font-medium">Next Call</th>
+                        <th className="px-2 py-1.5 text-left font-medium">Business</th>
+                        <th className="px-2 py-1.5 text-left font-medium">Address</th>
+                        <th className="px-2 py-1.5 text-left font-medium">Phone</th>
+                        <th className="px-2 py-1.5 text-left font-medium">Rating</th>
                       </tr>
                     </thead>
                     <tbody>
                       {csvRows.slice(0, 3).map((r, i) => (
                         <tr key={i} className="border-b border-border/60 last:border-0">
-                          <td className="px-2 py-1.5">{r.lead_name}</td>
-                          <td className="px-2 py-1.5 text-muted-foreground">{r.company}</td>
-                          <td className="px-2 py-1.5">{r.sequence_day}</td>
-                          <td className="px-2 py-1.5">{r.next_call_date}</td>
+                          <td className="px-2 py-1.5">{r.business_name}</td>
+                          <td className="truncate px-2 py-1.5 text-muted-foreground">{r.address}</td>
+                          <td className="px-2 py-1.5">{r.phone}</td>
+                          <td className="px-2 py-1.5">
+                            {r.rating}
+                            {r.reviews && ` (${r.reviews})`}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -380,11 +430,35 @@ export function CallQueuePageClient({ initialLeads }: { initialLeads: CallQueueL
                           {lead.company && (
                             <p className="truncate text-xs text-muted-foreground">{lead.company}</p>
                           )}
-                          <div className="mt-1 flex items-center gap-3 text-xs">
+                          {lead.address && (
+                            <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-muted-foreground">
+                              <MapPin className="size-3 shrink-0" />
+                              {lead.address}
+                            </p>
+                          )}
+                          <div className="mt-1 flex flex-wrap items-center gap-3 text-xs">
                             {lead.phone && (
                               <a href={`tel:${lead.phone}`} className="text-primary hover:underline">
                                 {lead.phone}
                               </a>
+                            )}
+                            {lead.website && (
+                              <a
+                                href={websiteHref(lead.website)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex items-center gap-1 text-primary hover:underline"
+                              >
+                                <Globe className="size-3" />
+                                Website
+                              </a>
+                            )}
+                            {lead.rating != null && (
+                              <span className="flex items-center gap-1 text-amber-400">
+                                <Star className="size-3 fill-current" />
+                                {lead.rating}
+                                {lead.reviews != null && ` (${lead.reviews})`}
+                              </span>
                             )}
                             <span className={lead.isOverdue ? "font-medium text-rose-400" : "text-muted-foreground"}>
                               {dueLabel(lead)}

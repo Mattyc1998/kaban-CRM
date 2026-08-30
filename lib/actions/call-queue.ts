@@ -50,6 +50,11 @@ export async function importCallQueueLeads(input: unknown) {
         nextCallDate: r.nextCallDate,
         status: r.status,
         source: r.source || null,
+        placeId: r.placeId || null,
+        address: r.address || null,
+        website: r.website || null,
+        rating: r.rating ?? null,
+        reviews: r.reviews ?? null,
       })),
     }),
   ]);

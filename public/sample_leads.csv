@@ -1,13 +1,9 @@
-lead_name,company,phone,email,sequence_day,next_call_date,status,source
-John Smith,Smith Roofing,07700900001,john@smithroofing.example,1,2026-08-27,active,Instantly
-Sarah Jones,Jones Bakery,07700900002,sarah@jonesbakery.example,1,2026-08-29,active,Manual
-Mike Chen,Chen Consulting,07700900003,mike@chenconsulting.example,3,2026-08-28,active,n8n
-Emma Wilson,Wilson Design,07700900004,emma@wilsondesign.example,3,2026-08-29,active,Instantly
-David Brown,Brown Motors,07700900005,david@brownmotors.example,5,2026-08-25,active,Manual
-Lisa Taylor,Taylor Events,07700900006,lisa@taylorevents.example,5,2026-08-29,active,n8n
-Tom Anderson,Anderson Plumbing,07700900007,tom@andersonplumbing.example,7,2026-08-26,active,Instantly
-Rachel Green,Green Landscaping,07700900008,rachel@greenlandscaping.example,7,2026-08-29,active,Manual
-James White,White Electrical,07700900009,james@whiteelectrical.example,1,2026-09-02,active,n8n
-Sophie Clark,Clark Catering,07700900010,sophie@clarkcatering.example,3,2026-08-24,active,Instantly
-Chris Martin,Martin Autos,07700900011,chris@martinautos.example,1,2026-08-20,complete,Manual
-Amy Lewis,Lewis Florists,07700900012,amy@lewisflorists.example,7,2026-08-18,complete,n8n
+place_id,business_name,address,phone,email,website,rating,reviews
+ChIJd8BlQ2BZwokRAFUEcm_qrcA,Smith Roofing,123 Main St London,07700900001,john@smithroofing.example,https://smithroofing.example,4.5,128
+ChIJrTLr-GyuEmsRBfy61i59si0,Jones Bakery,45 High St Manchester,07700900002,sarah@jonesbakery.example,https://jonesbakery.example,4.8,342
+ChIJP3Sa8ziYEmsRUKgyFmh9AQM,Chen Consulting,8 Kings Rd Bristol,07700900003,mike@chenconsulting.example,https://chenconsulting.example,4.2,56
+ChIJgUbEo8cfqokR5lP9_Wh_DaM,Wilson Design,17 Park Ave Leeds,07700900004,,https://wilsondesign.example,4.9,214
+ChIJyWEHuEmsRUKgyFmh9AQM1,Brown Motors,92 Victoria Rd Birmingham,07700900005,david@brownmotors.example,,3.9,87
+ChIJnZ2h5PjEmsRUKgyFmh9AQM2,Taylor Events,3 Church St Liverpool,07700900006,lisa@taylorevents.example,https://taylorevents.example,4.6,63
+ChIJq6qq6PjEmsRUKgyFmh9AQM3,Anderson Plumbing,61 Mill Ln Sheffield,07700900007,,,,
+ChIJb6oq6PjEmsRUKgyFmh9AQM4,Green Landscaping,29 Elm St Newcastle,07700900008,rachel@greenlandscaping.example,https://greenlandscaping.example,4.7,109

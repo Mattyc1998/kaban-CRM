@@ -15,6 +15,11 @@ export const importCallQueueRowSchema = z.object({
     .pipe(z.enum(callQueueStatuses))
     .default("ACTIVE"),
   source: z.string().optional(),
+  placeId: z.string().optional(),
+  address: z.string().optional(),
+  website: z.string().optional(),
+  rating: z.coerce.number().optional(),
+  reviews: z.coerce.number().int().optional(),
 });
 
 export const importCallQueueSchema = z.array(importCallQueueRowSchema).min(1);

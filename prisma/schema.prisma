@@ -447,6 +447,14 @@ model CallQueueLead {
   nextCallDate DateTime
   status       CallQueueStatus @default(ACTIVE)
   source       String?
+  // Context pulled from a Google Maps / Places-style export (place_id,
+  // address, website, rating, reviews) — useful to have on hand before
+  // calling, even though nothing here drives cadence logic.
+  placeId      String?
+  address      String?
+  website      String?
+  rating       Float?
+  reviews      Int?
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 
